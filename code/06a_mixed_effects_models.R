@@ -158,8 +158,7 @@ allsyncxCor <- allsyncx %>%
   select(ZDistance, ZOverlap, ZTemp, DistKM)
 
 syncCor <- cor(na.omit(allsyncxCor))
-syncCor
-write.csv(syncCor, "output_data/06_cor_dist_overlap_temp_n4_sites_zscores.csv")
+syncCorwrite.csv(syncCor, "output_data/06_cor_dist_overlap_temp_n4_sites_zscores.csv")
 
 # ZDistance   ZOverlap      ZTemp     DistKM
 # ZDistance  1.0000000 -0.5999192 -0.6262589  0.5949952
@@ -466,7 +465,7 @@ round(range(allsyncxWithin$overlap),digits =2)
 
 ## model with overlap
 
-mem_mixed0 <- lmerMultiMember::lmer(Sync ~  overlap*annual_avg 
+mem_mixed0 <- lmerMultiMember::lmer(Sync ~  log(overlap)*annual_avg 
                                       + (1 | Region ) + ## add predictors here to get random effect per region
                                       (1 | RegionXSiteName), 
                                     memberships = list(Region = Wa, RegionXSiteName = Waj), 
@@ -492,7 +491,7 @@ ests <- sjPlot::plot_model(mem_mixed0,
                            title="Drivers of Thermal Synchrony")
 
 ests
-file.name1 <- paste0(out.dir, "withinBasin_effect_sizes_all_expsync_n4_sites_overlap.jpg")
+file.name1 <- paste0(out.dir, "withinBasin_effect_sizes_all_expsync_n4_sites_overlap_log.jpg")
 ggsave(ests, filename=file.name1, dpi=300, height=8, width=10)
 
 estsTab <- sjPlot::tab_model(mem_mixed0, 
@@ -526,7 +525,7 @@ tempDiv <- sjPlot::plot_model(mem_mixed0, type="pred", terms= c("overlap", "annu
 tempDiv
 
 
-DivTemp <- sjPlot::plot_model(mem_mixed0, type="pred", terms= c("annual_avg", " overlap [0.0, 0.46, 0.86]"),
+DivTemp <- sjPlot::plot_model(mem_mixed0, type="pred", terms= c("annual_avg", " overlap [0.2, 0.46, 0.86]"),
                               axis.title = c("Environmental synchrony" ,"Thermal Trait Synchrony"), 
                               legend.title = "Trait Overlap")
 DivTemp
@@ -534,7 +533,7 @@ DivTemp
 ## significant interactions
 CompPlotSigDiv <- plot_grid(list(tempDiv, DivTemp)) ## grid figures
 
-file.name1 <- paste0(out.dir, "withinBasin_overlap_sig_interactions_n4_sites_overlap.jpg")
+file.name1 <- paste0(out.dir, "withinBasin_overlap_sig_interactions_n4_sites_overlap_log.jpg")
 ggsave(CompPlotSigDiv, filename=file.name1, dpi=300, height=12, width=18)
 
 ## mixed model
@@ -629,13 +628,13 @@ round(quantile(allsyncxWithin$overlap, probs = c(0.05,0.5,0.95)), digits = 3)
 round(quantile(allsyncxWithin$distance, probs = c(0.05,0.5,0.95)), digits = 3)
 
 ## overlap v temp
-tempDiv <- sjPlot::plot_model(mem_mixed0, type="pred", terms= c("ZOverlap", "ZTemp [0.95, 0.98, 0.999]"),
+tempDiv <- sjPlot::plot_model(mem_mixed0, type="pred", terms= c("ZOverlap", "ZTemp [-0.86, 0.3, 0.92]"),
                               axis.title = c( "Trait Overlap (Z Score)","Thermal Trait Synchrony"), 
                               legend.title = "Environmental synchrony")
 tempDiv
 
 
-DivTemp <- sjPlot::plot_model(mem_mixed0, type="pred", terms= c("ZTemp", " ZOverlap [0.0, 0.46, 0.86]"),
+DivTemp <- sjPlot::plot_model(mem_mixed0, type="pred", terms= c("ZTemp", " ZOverlap [-1.436, 0.053, 1.499]"),
                               axis.title = c("Environmental synchrony (Z Score)" ,"Thermal Trait Synchrony"), 
                               legend.title = "Trait Overlap")
 DivTemp
@@ -670,7 +669,7 @@ tempDiv <- sjPlot::plot_model(model1, type="pred", terms= c("ZOverlap", "ZTemp [
 tempDiv
 
 
-DivTemp <- sjPlot::plot_model(model1, type="pred", terms= c("ZTemp", " ZOverlap [0.0, 0.46, 0.86]"),
+DivTemp <- sjPlot::plot_model(model1, type="pred", terms= c("ZTemp", " ZOverlap [-1.436, 0.053, 1.499]"),
                               axis.title = c("Environmental synchrony (Z Score)" ,"Thermal Trait Synchrony"), 
                               legend.title = "Trait Overlap")
 DivTemp
@@ -691,7 +690,7 @@ round(range(allsyncxWithin$overlap),digits =2)
 
 ## membership
 
-mem_mixed0 <- lmerMultiMember::lmer(Sync ~  distance*annual_avg 
+mem_mixed0 <- lmerMultiMember::lmer(Sync ~  log(distance)*annual_avg 
                                     + (1 | Region ) + ## add predictors here to get random effect per region
                                       (1 | RegionXSiteName), 
                                     memberships = list(Region = Wa, RegionXSiteName = Waj), 
@@ -717,7 +716,7 @@ ests <- sjPlot::plot_model(mem_mixed0,
                            title="Drivers of Thermal Synchrony")
 
 ests
-file.name1 <- paste0(out.dir, "withinBasin_effect_sizes_all_expsync_n4_sites_overlap_distance.jpg")
+file.name1 <- paste0(out.dir, "withinBasin_effect_sizes_all_expsync_n4_sites_overlap_distance_log.jpg")
 ggsave(ests, filename=file.name1, dpi=300, height=8, width=10)
 
 estsTab <- sjPlot::tab_model(mem_mixed0, 
@@ -759,7 +758,7 @@ DisTemp
 ## significant interactions
 CompPlotSigDiv <- plot_grid(list(tempDis, DisTemp)) ## grid figures
 
-file.name1 <- paste0(out.dir, "withinBasin_overlap_sig_interactions_n4_sites_distance.jpg")
+file.name1 <- paste0(out.dir, "withinBasin_overlap_sig_interactions_n4_sites_distance_log.jpg")
 ggsave(CompPlotSigDiv, filename=file.name1, dpi=300, height=12, width=18)
 
 ## mixed model
@@ -848,18 +847,18 @@ theme_set(theme_sjplot())
 
 ### make individual plots of interactions
 mean(allsyncxWithin$overlap)
-quantile(allsyncxWithin$annual_avg, probs = c(0.05,0.5,0.95))
-round(quantile(allsyncxWithin$overlap, probs = c(0.05,0.5,0.95)), digits = 3)
-round(quantile(allsyncxWithin$distance, probs = c(0.05,0.5,0.95)), digits = 3)
+quantile(allsyncxWithin$ZTemp, probs = c(0.05,0.5,0.95))
+round(quantile(allsyncxWithin$ZOverlap, probs = c(0.05,0.5,0.95)), digits = 3)
+round(quantile(allsyncxWithin$ZDistance, probs = c(0.05,0.5,0.95)), digits = 3)
 
 ## overlap v temp
-tempDis <- sjPlot::plot_model(mem_mixed0, type="pred", terms= c("ZDistance", "ZTemp [0.95, 0.98, 0.999]"),
+tempDis <- sjPlot::plot_model(mem_mixed0, type="pred", terms= c("ZDistance", "ZTemp [-0.86, 0.3, 0.92]"),
                               axis.title = c( "Trait Distance (Z Score)","Thermal Trait Synchrony"), 
                               legend.title = "Environmental synchrony")
 tempDis
 
 
-DisTemp <- sjPlot::plot_model(mem_mixed0, type="pred", terms= c("ZTemp", "ZDistance [0.001, 0.018, 0.077]"),
+DisTemp <- sjPlot::plot_model(mem_mixed0, type="pred", terms= c("ZTemp", "ZDistance [-1.094, -0.318, 2.004]"),
                               axis.title = c("Environmental synchrony (Z Score)" ,"Thermal Trait Synchrony"), 
                               legend.title = "Trait Distance")
 DisTemp
@@ -1431,6 +1430,168 @@ ggsave(CompPlotnon, filename=file.name1, dpi=300, height=8, width=10)
 # ggsave(RegPlot3, filename=file.name1, dpi=300, height=8, width=10)
 
 
+
+
+
+# Between Basin: single biotic variable and z scores ----------------------
+
+# ## make longer to get site names for membership model
+allsyncxBetween <- allsyncx %>%
+  filter(Connectivity == 0) %>%
+  pivot_longer(Site_ID1:Site_ID2, names_to = "SiteNumber", values_to = "SiteName") 
+
+head(allsyncxBetween)
+
+Wa <- lmerMultiMember::weights_from_vector(allsyncxBetween$Region)
+Wj <- Matrix::fac2sparse(allsyncxBetween$SiteName)  # convert single membership vars to an indicator matrix with fac2sparse()
+Waj <- interaction_weights(Wa, Wj)
+
+
+## Overlap
+mem_mixed0 <- lmerMultiMember::lmer(Sync ~  ZOverlap*ZTemp
+                                    + (1 | Region ) + ## add predictors here to get random effect per region
+                                      (1 | RegionXSiteName), 
+                                    memberships = list(Region = Wa, RegionXSiteName = Waj), 
+                                    REML = T,
+                                    data = allsyncxBetween)
+
+
+summary(mem_mixed0, ddf = "Satterthwaite")
+anova(mem_mixed0, ddf = "Satterthwaite")
+r2_nakagawa(mem_mixed0) ## 0.148
+check_singularity(mem_mixed0) ## False
+performance::icc(mem_mixed0, by_group = T) ## 0.113
+
+# lattice::qqmath(mem_mixed1)
+# plot(mem_mixed1, type=c("p","smooth"), col.line=1)
+# check_model(mem_mixed1)
+
+### plots 
+class(mem_mixed0) <- "lmerModLmerTest"
+# sjPlot::plot_model(mem_mixed) 
+ests <- sjPlot::plot_model(mem_mixed0, 
+                           show.values=TRUE, show.p=TRUE,
+                           title="Drivers of Thermal Synchrony")
+
+ests
+file.name1 <- paste0(out.dir, "betweenBasin_effect_sizes_all_expsync_n4_sites_overlap_zscores.jpg")
+ggsave(ests, filename=file.name1, dpi=300, height=8, width=10)
+
+estsTab <- sjPlot::tab_model(mem_mixed0, 
+                             show.re.var= TRUE, 
+                             pred.labels =c("(Intercept)", "overlap", "annual avg"),
+                             dv.labels= "Drivers of Thermal Synchrony")
+
+estsTab
+
+set_theme(base = theme_classic(), #To remove the background color and the grids
+          theme.font = 'serif',   #To change the font type
+          axis.title.size = 1.3,  #To change axis title size
+          axis.textsize.x = 1.2,    #To change x axis text size
+          # axis.angle.x = 60,      #To change x axis text angle
+          # axis.hjust.x = 1,
+          # axis.ticksmar = 50,
+          axis.textsize.y = 1)  #To change y axis text size
+
+theme_set(theme_sjplot())
+
+### make individual plots of interactions
+mean(allsyncxBetween$overlap)
+quantile(allsyncxBetween$ZTemp, probs = c(0.05,0.5,0.95))
+round(quantile(allsyncxBetween$ZOverlap, probs = c(0.05,0.5,0.95)), digits = 3)
+round(quantile(allsyncxBetween$ZDistance, probs = c(0.05,0.5,0.95)), digits = 3)
+
+## overlap v temp
+tempDiv <- sjPlot::plot_model(mem_mixed0, type="pred", terms= c("ZOverlap", "ZTemp [-1.96, 0.16, 1.15]"),
+                              axis.title = c( "Trait Overlap (Z Score)","Thermal Trait Synchrony"), 
+                              legend.title = "Environmental synchrony")
+tempDiv
+
+
+DivTemp <- sjPlot::plot_model(mem_mixed0, type="pred", terms= c("ZTemp", " ZOverlap [-0.616, -0.601, 2.393]"),
+                              axis.title = c("Environmental synchrony (Z Score)" ,"Thermal Trait Synchrony"), 
+                              legend.title = "Trait Overlap")
+DivTemp
+
+## significant interactions
+CompPlotSigDiv <- plot_grid(list(tempDiv, DivTemp)) ## grid figures
+
+file.name1 <- paste0(out.dir, "betweenBasin_overlap_sig_interactions_n4_sites_overlap_zscores.jpg")
+ggsave(CompPlotSigDiv, filename=file.name1, dpi=300, height=12, width=18)
+
+
+## Distance
+
+mem_mixed0 <- lmerMultiMember::lmer(Sync ~  ZDistance*ZTemp
+                                    + (1 | Region ) + ## add predictors here to get random effect per region
+                                      (1 | RegionXSiteName), 
+                                    memberships = list(Region = Wa, RegionXSiteName = Waj), 
+                                    REML = T,
+                                    data = allsyncxBetween)
+
+
+summary(mem_mixed0, ddf = "Satterthwaite")
+anova(mem_mixed0, ddf = "Satterthwaite")
+r2_nakagawa(mem_mixed0) ## 0.151
+check_singularity(mem_mixed0) ## False
+performance::icc(mem_mixed0, by_group = T) ## 0.122
+
+# lattice::qqmath(mem_mixed1)
+# plot(mem_mixed1, type=c("p","smooth"), col.line=1)
+# check_model(mem_mixed1)
+
+### plots 
+class(mem_mixed0) <- "lmerModLmerTest"
+# sjPlot::plot_model(mem_mixed) 
+ests <- sjPlot::plot_model(mem_mixed0, 
+                           show.values=TRUE, show.p=TRUE,
+                           title="Drivers of Thermal Synchrony")
+
+ests
+file.name1 <- paste0(out.dir, "betweenBasin_effect_sizes_all_expsync_n4_sites_distance_zscores.jpg")
+ggsave(ests, filename=file.name1, dpi=300, height=8, width=10)
+
+estsTab <- sjPlot::tab_model(mem_mixed0, 
+                             show.re.var= TRUE, 
+                             pred.labels =c("(Intercept)", "overlap", "annual avg"),
+                             dv.labels= "Drivers of Thermal Synchrony")
+
+estsTab
+
+set_theme(base = theme_classic(), #To remove the background color and the grids
+          theme.font = 'serif',   #To change the font type
+          axis.title.size = 1.3,  #To change axis title size
+          axis.textsize.x = 1.2,    #To change x axis text size
+          # axis.angle.x = 60,      #To change x axis text angle
+          # axis.hjust.x = 1,
+          # axis.ticksmar = 50,
+          axis.textsize.y = 1)  #To change y axis text size
+
+theme_set(theme_sjplot())
+
+### make individual plots of interactions
+mean(allsyncxWithin$overlap)
+quantile(allsyncxBetween$ZTemp, probs = c(0.05,0.5,0.95))
+round(quantile(allsyncxBetween$ZOverlap, probs = c(0.05,0.5,0.95)), digits = 3)
+round(quantile(allsyncxBetween$ZDistance, probs = c(0.05,0.5,0.95)), digits = 3)
+
+## overlap v temp
+tempDis <- sjPlot::plot_model(mem_mixed0, type="pred", terms= c("ZDistance", "ZTemp [-1.96, 0.16, 1.15]"),
+                              axis.title = c( "Trait Distance (Z Score)","Thermal Trait Synchrony"), 
+                              legend.title = "Environmental synchrony")
+tempDis
+
+
+DisTemp <- sjPlot::plot_model(mem_mixed0, type="pred", terms= c("ZTemp", "ZDistance [-1.210, -0.199, 1.957]"),
+                              axis.title = c("Environmental synchrony (Z Score)" ,"Thermal Trait Synchrony"), 
+                              legend.title = "Trait Distance")
+DisTemp
+
+## significant interactions
+CompPlotSigDiv <- plot_grid(list(tempDis, DisTemp)) ## grid figures
+
+file.name1 <- paste0(out.dir, "betweenBasin_overlap_sig_interactions_n4_sites_distance_zscores.jpg")
+ggsave(CompPlotSigDiv, filename=file.name1, dpi=300, height=12, width=18)
 
 
 

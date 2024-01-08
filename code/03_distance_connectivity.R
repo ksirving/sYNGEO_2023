@@ -171,6 +171,7 @@ save(syncDF, file = "sync/03_sync_traits_CWM_CWV_distances.RData")
 
 sync <- read.csv( "sync/02_between_all_sites_temp_synchrony.csv")
 head(sync)
+dim(sync)
 
 load(file = "sync/03_all_pair_distances.RData") ## syncsites
 
@@ -186,6 +187,7 @@ sync_sub <- syncsites %>%
 ## join
 all_sync <- left_join(sync, sync_sub, by = "Pair")
 head(all_sync)
+
 ## convert to similarities
 
 syncDF <- all_sync %>%

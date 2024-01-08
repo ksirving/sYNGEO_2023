@@ -18,7 +18,8 @@ load(file = "sync/03_sync_traits_CWM_CWV_distances.RData")
 
 funcsync <- syncDF %>%
   rename(Sync = synchrony) %>%
-  dplyr::select(-X) 
+  dplyr::select(-X) %>%
+  filter( !Site_ID1 == Site_ID2) ## remove pairs comprised of same sites
 
 head(funcsync)
 
@@ -32,11 +33,21 @@ head(funcsync)
 
 load(file="sync/03_sync_temp_distances.RData")
 
-tempsync <- syncDF %>%
-  # mutate(SyncType = "TSync")  %>%
+tempsyncS <- syncDF %>%
+  dplyr::select(-corCoef) %>%
+  distinct() %>%
   pivot_wider(names_from = Metric, values_from = synchrony) %>%
-  filter( !Site_ID1 == Site_ID2)## remove pairs comrised of same sites
+  filter( !Site_ID1 == Site_ID2) ## remove pairs comprised of same sites
 
+tempsyncC <- syncDF %>%
+  dplyr::select(-synchrony) %>%
+  distinct() %>%
+  pivot_wider(names_from = Metric, values_from = corCoef) %>%
+  filter( !Site_ID1 == Site_ID2) %>% ## remove pairs comprised of same sites
+  dplyr::select(Pair, Region, annual_avg) %>%
+  rename(annual_avgC = annual_avg)
+  
+tempsync <- full_join(tempsyncS, tempsyncC, by = c("Pair", "Region"))
 ## checking missing pairs script 5a
 
 # singSpeciesorig <- tempsync %>%
@@ -248,7 +259,7 @@ head(watersites)
 
 watersites <- watersites %>%
   mutate(WCDistkm = DistMetersWater/1000) %>%
-  select(-BioRealm)
+  dplyr::select(-BioRealm)
 
 
 head(allsyncx)
@@ -259,7 +270,7 @@ syncDF
 syncDF <- syncDF %>%
   filter(Connectivity == 1) %>%
   mutate(DistKM = Euclid_Dist_Meters/1000 ) %>%
-  select(Pair, DistKM, WCDistkm)
+  dplyr::select(Pair, DistKM, WCDistkm)
   # pivot_longer(c(Euclid_Dist_KM, WCDistkm), names_to = "Dist_Type", values_to = "KM")
 
 

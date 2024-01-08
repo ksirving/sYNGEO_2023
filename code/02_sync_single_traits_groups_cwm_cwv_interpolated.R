@@ -263,7 +263,7 @@ melt_clim_raw <- read.csv(file="input_data/Env/air_annual_and_summer_avg.csv") %
 
 head(melt_clim_raw)
 
-load(file="input_data/Env/flow_data_melt_raw_new_sites.RData")
+#load(file="input_data/Env/flow_data_melt_raw_new_sites.RData")
 
 # S10203.S10089 e.g. missing pair, both sites missing 
 
@@ -345,13 +345,32 @@ for (region in 1:length(regionsID)) {
                         c("site1", "site2")
         )
       )
-
+      sync_mat
       compute_synchrony(cov(sync_mat))
+      
 
     })
     
-    synchrony<- cbind(cc,synchrony) 
+    corCoef <- sapply(seq_len(nrow(cc)), function(k) {
+      i <- cc[k,1]
+      j <- cc[k,2]
+      
+      sync_mat <- matrix(
+        c(trait_temp[, i],trait_temp[,j]),
+        nrow = 10,
+        byrow = F,
+        dimnames = list(years,
+                        c("site1", "site2")
+        )
+      )
+  
+      cor(sync_mat)[1,2]
+      
+    })
+    
+    synchrony<- cbind(cc,synchrony, corCoef) 
     synchrony
+    
     ## add traits and region
     synchrony <- synchrony %>%
       mutate(Metric = Ntraits[ax], Region = regionsID[region])
