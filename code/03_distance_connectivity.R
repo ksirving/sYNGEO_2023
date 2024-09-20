@@ -133,7 +133,7 @@ for(p in 1:length(pairs)) {
 head(syncsites)
 
 save(syncsites, file = "sync/03_all_pair_distances.RData")
-
+load(file = "sync/03_all_pair_distances.RData")
 
 
 # Combine with single trait DF --------------------------------------------

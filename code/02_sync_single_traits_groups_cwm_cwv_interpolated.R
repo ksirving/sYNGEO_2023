@@ -14,6 +14,9 @@ library(gdata)
 library(here)
 library(tidylog)
 library(overlapping)
+# 
+# update.packages("bayestestR")
+# install.packages("bayestestR")
 
 getwd()
 ## upload fish abundance and site data
@@ -24,6 +27,11 @@ head(originaldata)
 # test <- originaldata %>% filter(SiteID == "S6654")
 # test
 
+## upload <=3 species sites to remove
+
+load(file="output_data/01a_sites_3_species.RData")
+head(singleSp3l)
+
 ## upload and format community weighted mean traits - all groups
 
 trait_matrix <- read.csv("output_data/01_trt_single_traits_interpolated_cwm_cmv.csv")
@@ -32,8 +40,17 @@ head(trait_matrix)
 
 all_groups <- trait_matrix %>%
   mutate(BiogeoRegion = case_when(Country %in% c("FIN", "SWE", "GBR", "ESP", "FRA") ~ "Europe",
-                                  Country== "AUS" ~ "Oceania", Country == "USA" ~ "USA"))
+                                  Country== "AUS" ~ "Oceania", Country == "USA" ~ "USA")) %>%
+  filter(!SiteID %in% singleSp3l)
 head(all_groups)
+
+## temp preference per region
+
+all_groups %>% group_by(BiogeoRegion) %>% summarise(MeanTemp = mean(CWM))
+names(all_groups)
+
+## remove <3 species sites
+all_groups
 
 ## save out sites
 # finalSites <- all_groups %>%
@@ -55,7 +72,9 @@ ax=1
 
 
   ### loop over regions
-  for (region in 1:length(regionsID)) {
+  for (region in 2:length(regionsID)) {
+    
+    print(regionsID[region])
     
     basindata<-all_groups[all_groups$BiogeoRegion==regionsID[region],]
     # head(basindata)
@@ -63,7 +82,7 @@ ax=1
     
     ### loop over axis
     Ntraits<-unique(basindata$Trait)
-    # Ntraits
+ 
     
     for (ax in 1: length(Ntraits)) {
       
@@ -96,11 +115,16 @@ ax=1
    
       ### synchrony 
       cc <- expand.grid(colnames(trait_CWM), colnames(trait_CWM), KEEP.OUT.ATTRS = FALSE)
-
+      cc
       synchrony <- sapply(seq_len(nrow(cc)), function(k) {
+       
+        print("synchrony")
+        print(k)
+        
+        
         i <- cc[k,1]
         j <- cc[k,2]
-
+        
         sync_mat <- matrix(
           c(trait_CWM[, i],trait_CWM[,j]),
           nrow = 10,
@@ -112,76 +136,83 @@ ax=1
         # sync_mat
         compute_synchrony(cov(sync_mat))
       })
+      
       # synchrony
       # head(synchrony)
-  
-      ### diversity: Temporal average of Community Weighted Variance
-      
-      # cc <- expand.grid(colnames(trait_CWV), colnames(trait_CWV), KEEP.OUT.ATTRS = FALSE)
-     
-      # diversity <- sapply(seq_len(nrow(cc)), function(k) {
-      #   i <- cc[k,1]
-      #   j <- cc[k,2]
-      #   
-      #   div_mat <- matrix(
-      #     c(trait_CWV[, i],trait_CWV[,j]),
-      #     nrow = 10,
-      #     byrow = F,
-      #     dimnames = list(years,
-      #                     c("site1", "site2")
-      #     )
-      #   )
-      # 
-      #   mean(div_mat)
-      #   
-      # })
-      
-      ## diversity 2: coeficient of variation on thermal index
-      
-      # [1] "S1397.S10015" "S1835.S10015" "S1852.S10015" "S2976.S10015" "S3151.S10015" "S3165.S10015"
-      # [7] "S3191.S10015" "S3269.S10015" "S3450.S10015" "S4223.S10015"
- 
-      # diversity2 <- sapply(seq_len(nrow(cc)), function(k) {
-      #   i <- cc[k,1]
-      #   j <- cc[k,2]
-      #   
-      #   div_mat2 <- matrix(
-      #     c(trait_CV[, i],trait_CV[,j]),
-      #     nrow = 10,
-      #     byrow = F,
-      #     dimnames = list(years,
-      #                     c("site1", "site2")
-      #     )
-      #   )
-      #   
-      #   mean(div_mat2)
-      # 
-      # })
-      # 
-      # # diversity2
       
       ## diversity 2: overlapping index on CWM
-
-      diversity2 <- sapply(seq_len(nrow(cc)), function(k) {
+      # diversity2 <- sapply(seq_len(nrow(cc)), function(k) {
+      #   
+      #   print("diversity2")
+      #   print(k)
+      #   
+      #   i <- cc[k,1]
+      #   j <- cc[k,2]
+      #   
+      #   ## format data as list
+      #   div_mat2 <- list(site1 = trait_CWM[, i], site2 = trait_CWM[,j])
+      #   
+      #   # sync_mat
+      #   overlapping::overlap(div_mat2)$OV #, type = "2"
+      #   # plot(bayestestR::overlap(div_mat2$site1, div_mat2$site2))
+      # })
+      # 
+      # diversity2
+      # diversity2 - v2
+      
+      ## overlap using type =2
+      # diversity3 <- sapply(seq_len(nrow(cc)), function(k) {
+      # 
+      #   print("diversity3")
+      #   print(k)
+      #   
+      #   i <- cc[k,1]
+      #   j <- cc[k,2]
+      # 
+      #   ## format data as list
+      #   div_mat2 <- list(site1 = scale(trait_CWM[, i]), site2 = scale(trait_CWM[,j]))
+      # 
+      #   # bayestestR::overlap(div_mat2$site1, div_mat2$site2) ## overalp index
+      #   overlapping::overlap(div_mat2)$OV #, type = "2"
+      #   # bayestestR::overlap(div_mat2$site1,div_mat2$site2, method_density = "KernSmooth")[[1]]
+      #   # plot(bayestestR::overlap(div_mat2$site1, div_mat2$site2))
+      # })
+      
+      # ggplot(test, aes(x = value,fill = name)) +
+      #   geom_density( alpha = 0.7) #+
+      #   labs(title = "Kernel Density Plot of Salary",
+      #        x = "Salary",
+      #        y = "Density")
+      
+      diversityBayes <- sapply(seq_len(nrow(cc)), function(k) {
+        
+        print("diversityBayes")
+        print(k)
+        
         i <- cc[k,1]
         j <- cc[k,2]
         
         ## format data as list
         div_mat2 <- list(site1 = trait_CWM[, i], site2 = trait_CWM[,j])
         # div_mat2
-        # sync_mat
-        overlap(div_mat2)$OV ## overalp index
-       
+   
+        bayestestR::overlap(scale(div_mat2$site1), scale(div_mat2$site2), method_density = "KernSmooth")[[1]] ## overalp index
+        # plot(bayestestR::overlap(scale(div_mat2$site1), scale(div_mat2$site2), method_auc = "spline"))
+        # bayestestR::overlap(scale(div_mat2$site1), scale(div_mat2$site2), method_density = "KernSmooth", method_auc = "spline", extend=F)
+        # overlapping::overlap(div_mat2, type = "2")$OV #, type = "2"
+        # plot(bayestestR::overlap(div_mat2$site1, div_mat2$site2))
       })
-      
-      # diversity2
 
-      
+      # cor(diversity3, diversity2) ## negative
       ### distance: Difference in temporal average of Community Weighted Mean
       
       # cc <- expand.grid(colnames(trait_CWM), colnames(trait_CWM), KEEP.OUT.ATTRS = FALSE)
 
       distance <- sapply(seq_len(nrow(cc)), function(k) {
+        
+        print("distance")
+        print(k)
+        
         i <- cc[k,1]
         j <- cc[k,2]
         
@@ -193,30 +224,38 @@ ax=1
                           c("site1", "site2")
           )
         )
-     
-        abs(mean(dist_mat[,1])-mean(dist_mat[,2]))/mean(dist_mat)
+        # dist_mat
+        abs((mean(dist_mat[,1])-mean(dist_mat[,2]))/mean(dist_mat))
       
       })
       
-      # distancex <- sapply(seq_len(nrow(cc)), function(k) {
-      #   i <- cc[k,1]
-      #   j <- cc[k,2]
-      #   
-      #   dist_mat <- matrix(
-      #     c(trait_CWM[, i],trait_CWM[,j]),
-      #     nrow = 10,
-      #     byrow = F,
-      #     dimnames = list(years,
-      #                     c("site1", "site2")
-      #     )
-      #   )
-      #   
-      #   (mean(dist_mat[,1])-mean(dist_mat[,2]))
-      #   
-      # })
-      # 
+  
+      ## distance without dividing by mean
+      distanceAbs <- sapply(seq_len(nrow(cc)), function(k) {
+        
+        print("distanceAbs")
+        print(k)
+        
+        i <- cc[k,1]
+        j <- cc[k,2]
+        
+        dist_mat <- matrix(
+          c(trait_CWM[, i],trait_CWM[,j]),
+          nrow = 10,
+          byrow = F,
+          dimnames = list(years,
+                          c("site1", "site2")
+          )
+        )
+        
+        mean((dist_mat[,1])-mean(dist_mat[,2]))#/mean(dist_mat)
+        
+      })
+     
+      # round(cor(distance, distanceAbs, use = "pairwise"), digits = 2)
+
       ## combine all
-      synchrony <- cbind(cc, synchrony, absdistance, distance,  diversity2)
+      synchrony <- cbind(cc, synchrony, distance, distanceAbs, diversityBayes)
       # synchrony
       ## add traits and region
       synchrony <- synchrony %>%
@@ -241,6 +280,18 @@ synchrony_axis <- synchronyx %>%
 head(synchrony_axis)
 length(unique(synchrony_axis$Trait))
 length(unique(synchrony_axis$Region))
+
+## add to other overlap metrics
+synchrony_axisX <- read.csv("sync/02_between_all_sites_single_traits_CWM_CWV_CV.csv")
+
+synchrony_axisX <- synchrony_axisX %>%
+  select(diversity2, diversity3)
+
+## join together
+synchrony_axis <- cbind(synchrony_axis, synchrony_axisX)
+
+
+head(synchrony_axis)
 
 
 ###save results
@@ -365,7 +416,7 @@ for (region in 1:length(regionsID)) {
       )
   
       cor(sync_mat)[1,2]
-      
+      ?cor
     })
     
     synchrony<- cbind(cc,synchrony, corCoef) 

@@ -1,0 +1,7 @@
+Region,Type,Minimum,Maximum,Mean +/- SE
+Europe,Euclidean ,0.04,527.24,64.12 +/- 0.86
+Europe,WaterCourse,0,966.65,126.12 +/- 1.92
+Oceania,Euclidean ,3.04,162.55,59.43 +/- 0.8
+Oceania,WaterCourse,1.26,304.79,142.36 +/- 1.74
+USA,Euclidean ,0.54,1052.35,441.16 +/- 5.02
+USA,WaterCourse,0.63,2831.78,1015.9 +/- 13.41

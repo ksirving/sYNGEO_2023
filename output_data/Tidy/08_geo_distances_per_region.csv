@@ -1,0 +1,7 @@
+"","Region","Variable","MinVals","MaxVals","MeanVals","SdtError"
+"1","Europe","DistKM",0.04,527.24,64.12,0.86
+"2","Europe","WCDistkm",0,966.65,126.12,1.92
+"3","Oceania","DistKM",3.04,162.55,59.43,0.8
+"4","Oceania","WCDistkm",1.26,304.79,142.36,1.74
+"5","USA","DistKM",0.54,1052.35,441.16,5.02
+"6","USA","WCDistkm",0.63,2831.78,1015.9,13.41

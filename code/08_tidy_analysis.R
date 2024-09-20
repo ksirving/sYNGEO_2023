@@ -1,3 +1,4 @@
+library(ggeffects)
 library(tidyverse)
 library(tidylog)
 library(cowplot) #for manuscript ready figures
@@ -13,6 +14,8 @@ library("scales")
 library(performance)
 library(lme4)
 
+getwd()
+
 load(file = "sync/04_temp_pref_env_dist_no_dupl_pairs_WC.RData")
 head(allsyncx)
 
@@ -20,7 +23,7 @@ head(allsyncx)
 load(file="output_data/01a_sites_3_species.RData")
 head(singleSp3l)
 length(singleSp3l) ## 151
-
+view(singleSp3l)
 ## change names and filter single species sites
 
 allsyncx <- allsyncx %>%
@@ -580,7 +583,7 @@ round(quantile(allsyncxWithin$ZDistance, probs = c(0.05,0.5,0.95)), digits = 3)
 ## 5% = -1.348625 to -1.094
 ## 50% = -0.8 to 0
 ## 95% = 2.004 to 4.768400
-?plot_model
+
 
 ## overlap
 allsyncxWithin$OverlapWithinFit <- fitted(mem_mixed1)
@@ -604,8 +607,8 @@ var.back <- (allsyncxWithin$ZTemp * sd.vari) + mean.vari
 names(allsyncxWithin)
 ### add categories of 
 FigureData <- allsyncxWithin %>%
-  select(Sync, Pair, Region, distance, overlap, annual_avg, ZDistance, ZOverlap, ZTemp, TempBack,DistanceWithinFit:DistanceThresh) %>%
-  mutate(DistanceThresh = ifelse(ZDistance < -1.094, "5thPercentile", NA)),
+  select(Sync, Pair, Region, distance, overlap, annual_avg, ZDistance, ZOverlap, ZTemp, DistanceWithinFit:OverlapWithinFit) %>%
+  mutate(DistanceThresh = ifelse(ZDistance < -1.094, "5thPercentile", NA),
          DistanceThresh = ifelse(ZDistance > -0.4 & ZDistance < -0.320, "50thPercentile", DistanceThresh),
          DistanceThresh = ifelse(ZDistance > 2.004 , "95thPercentile", DistanceThresh)) %>%
   mutate(OverlapThresh = ifelse(ZOverlap < -1.436, "5thPercentile", NA),
@@ -613,13 +616,13 @@ FigureData <- allsyncxWithin %>%
          OverlapThresh = ifelse(ZOverlap > 1.499 , "95thPercentile", OverlapThresh))
 
 FigureData <- allsyncxWithin %>%
-  select(Sync, Pair, Region, distance, overlap, annual_avg, ZDistance, ZOverlap, ZTemp, TempBack,DistanceWithinFit:DistanceThresh) %>%
+  select(Sync, Pair, Region, distance, overlap, annual_avg, ZDistance, ZOverlap, ZTemp, DistanceWithinFit:OverlapWithinFit) %>%
   mutate(DistancePercentiles = percent_rank(ZDistance)*100)
 
 head(FigureData)  
 
-FigureDataDist <- FigureData %>%
-  drop_na(DistanceThresh)
+# FigureDataDist <- FigureData %>%
+#   drop_na(DistanceThresh)
 
 min(allsyncxWithin$ZTemp)
 max(allsyncxWithin$ZTemp)
@@ -639,6 +642,7 @@ new_df       <- expand.grid(ZTemp = seq(-10,1.11,0.1), ZDistance = c(-1.094, -0.
 new_df
 predictions
 ?fitted
+?trans_new
 predictions  <- fitted(mem_mixed0, se.fit = T)
 new_df$mpg   <- predictions$fit
 new_df$upper <- new_df$mpg + 1.96 * predictions$se.fit
@@ -697,7 +701,7 @@ DisTempx <- sjPlot::plot_model(mem_mixed0, type="pred", terms= c("ZTemp", "ZDist
                                legend.title = "Distance Percentile", title = "") + 
   scale_color_discrete(labels = c("5th", "50th", "95th")) + 
   # theme(legend.position = "none") +
-  scale_x_continuous( sec.axis = sec_axis(~.*sd.vari+mean.vari, name="Environmental synchrony (Original)" )) +
+  scale_x_continuous( sec.axis = sec_axis(~.*sd.vari.temp+mean.vari.temp, name="Environmental synchrony (Original)" )) +
   theme(text = element_text(size=25))
 
 DisTempx
@@ -714,11 +718,14 @@ DivTemp
 ## join together
 WithinPlot <- cowplot::plot_grid(DisTempx, DivTemp, labels="auto") ## grid figures
 WithinPlot
-?plot_grid
 
 ## save out
 file.name1 <- paste0(out.dir, "08_biotic_interactions_dist_overlap.jpg")
 ggsave(WithinPlot, filename=file.name1, dpi=300, height=12, width=18)
+
+## add an arrow to say more similar, less similar in legend
+## need to scale the axis
+
 
 ## estimates
 

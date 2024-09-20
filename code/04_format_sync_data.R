@@ -61,6 +61,7 @@ allsync <- full_join(funcsync, tempsync, by = c("Pair","Site_ID1", "Site_ID2", "
   mutate(DistKM = Euclid_Dist_Meters/1000)
 
 save(allsync, file = "sync/04_temp_pref_env_dist_ALL.RData")
+
 # Format sites ------------------------------------------------------------
 
 ## some pairs are the same sites but other way around
@@ -80,7 +81,7 @@ sites$whererev[sites$whererev>sites$no] <- NA #remove the first of each duplicat
 sites$Pair[!is.na(sites$whererev)] <- sites$rev[!is.na(sites$whererev)] #replace duplicates
 
 all_sites <- unique(sites$Pair) ## pairs with no reverse duplicate
-length(all_sites) ## 208066 
+length(all_sites) ## 207299
 dim(sites)
 
 ## subset original df 
@@ -88,10 +89,12 @@ names(sites)
 allsyncx  <- sites %>%
   ungroup() %>%
   dplyr::select(-Site_ID2a, -Site_ID1a, -rev,-no,-whererev) %>%
-  distinct(Pair, .keep_all = TRUE)
+  distinct(Pair, .keep_all = TRUE) %>%
+  drop_na(Sync)
 
 save(allsyncx, file = "sync/04_temp_pref_env_dist_no_dupl_pairs.RData")
 
+# sum(is.na(allsyncx$distance))
 
 # watercourse V euclid distance -------------------------------------------
 
@@ -264,7 +267,7 @@ watersites <- watersites %>%
 
 head(allsyncx)
 
-unique(syncDF$Trait)
+
 syncDF <- left_join(allsyncx, watersites, by = c("Pair") ) 
 syncDF
 syncDF <- syncDF %>%
@@ -274,18 +277,18 @@ syncDF <- syncDF %>%
   # pivot_longer(c(Euclid_Dist_KM, WCDistkm), names_to = "Dist_Type", values_to = "KM")
 
 
-
-sm1a <- ggplot(syncDF, aes(x=KM, y=synchrony, color = Dist_Type)) +
-  geom_smooth(method = "lm") +
-  facet_wrap(~Trait) +
-  scale_color_discrete(name = "Distance Type", labels = c("Euclidean", "Water Course")) +
-  scale_y_continuous(name="Synchrony") +
-  scale_x_log10(name="Log Distance (km)", labels = comma) 
-sm1a
-
-
-file.name1 <- paste0(out.dir, "Euclid_v_waterCourse_distance.jpg")
-ggsave(sm1a, filename=file.name1, dpi=300, height=5, width=6)
+# 
+# sm1a <- ggplot(syncDF, aes(x=KM, y=synchrony, color = Dist_Type)) +
+#   geom_smooth(method = "lm") +
+#   # facet_wrap(~Trait) +
+#   scale_color_discrete(name = "Distance Type", labels = c("Euclidean", "Water Course")) +
+#   scale_y_continuous(name="Synchrony") +
+#   scale_x_log10(name="Log Distance (km)", labels = comma) 
+# sm1a
+# 
+# 
+# file.name1 <- paste0(out.dir, "Euclid_v_waterCourse_distance.jpg")
+# ggsave(sm1a, filename=file.name1, dpi=300, height=5, width=6)
 
 head(syncDF)
 

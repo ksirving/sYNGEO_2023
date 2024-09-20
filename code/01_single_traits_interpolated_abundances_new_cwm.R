@@ -24,7 +24,7 @@ out.dir <- "/Users/katieirving/OneDrive - SCCWRP/Documents - Katie’s MacBook P
 trt1 <- read.csv("input_data/Bio/matSpecies_imputedCloseTaxa.csv")
 
 head(trt1)
-dim(trt1) ## 272, 21 traits
+dim(trt1) ## 272, 24 traits
 
 ## only using temp pref
 ## remove species with no trait data
@@ -40,6 +40,8 @@ trt
 fish_ab <- read.csv("input_data/Bio/fishdata_selection_basins_same_time_window_10262020.csv")
 
 head(fish_ab)
+unique(fish_ab$Protocol)
+unique(fish_ab$Month)
 str(fish_ab)
 ## remove basins - Sweden 2080030650 and 2080031160
 ## keep only origin Ohio and LTRM in mississippi
@@ -56,6 +58,7 @@ fish_ab <- fish_ab %>%
 sites <- fish_ab %>%
   select(SiteID, Latitude, Longitude, BioRealm,  HydroBasin, Country) %>%
   distinct()
+unique(sites$Country)
 
 ## count how many years per site
 tally <- fish_ab %>%
@@ -65,6 +68,10 @@ tally <- fish_ab %>%
   tally()
 
 head(tally) 
+
+sum(tally$n == 9) ## 254
+sum(tally$n == 8) ## 85
+
 # 
 # remove_sites <- tally %>%
 #   filter(n < 8) 
@@ -238,7 +245,7 @@ unique(fish_ab_rel_int$Month)
 months_check <- fish_ab_rel_int %>%
   filter(Month %in% c(10,11,12)) 
 
-unique(months_check$Country)
+unique(months_check2$Country)
 
 months_check2 <- fish_ab_rel_int %>%
   filter(!Month %in% c(10,11,12))
@@ -322,6 +329,7 @@ fish_fortrt<-fish_mat3[,c(5:239)]
 row.names(fish_fortrt)<-fish_mat3$site_year
 names(fish_fortrt)
 
+fish_fortrt
 ## computes the functional composition of functional traits, by community weighted mean
 trt_matrix<-functcomp(trt_sub, as.matrix(fish_fortrt), CWM.type = "all")  
 head(trt_matrix)
