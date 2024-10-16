@@ -22,8 +22,8 @@ head(allsyncx)
 names(allsyncx)
 
 ## sites with 3 species
-# load(file="output_data/01a_sites_3_species.RData")
-# head(singleSp3l)
+load(file="output_data/01a_sites_3_species.RData")
+head(singleSp3l)
 # length(singleSp3l) ## 151 - removed earlier in process
 
 ## change names and filter single species sites
@@ -107,7 +107,7 @@ allsyncxCorWithin <- allsyncx %>%
   select(distance, overlap, annual_avg, DistKM, WCDistkm)
 
 syncCorwithin <- cor(allsyncxCorWithin, use = "complete.obs")
-
+syncCorwithin
 #             distance     overlap  annual_avg      DistKM    WCDistkm
 # distance    1.0000000 -0.74592662 -0.12016829  0.16799780  0.11205326
 # overlap    -0.7459266  1.00000000  0.04334475 -0.09658227 -0.02503594
@@ -240,6 +240,8 @@ allsyncxBetween <- allsyncx %>%
   filter(Connectivity == "Between Basin") %>%
   pivot_longer(Site_ID1:Site_ID2, names_to = "SiteNumber", values_to = "SiteName") 
 
+round(range(allsyncxBetween$distance),digits = 2) ## 0.00 0.31
+
 # N basins etc ------------------------------------------------------------
 
 ## upload fish abundance and site data
@@ -309,28 +311,32 @@ ggplot(OverT_wide, aes(Vals, colour = Var), fill = NA) +
 
 ## plot relationships with sync
 unique(relsT$name)
+
+names(allsyncxWithin)
 relsT <- allsyncxWithin %>%
-  select(Region, Sync:overlapBayes,overlap, overlapScaled, annual_avgC:WCDistkm) %>%
+  select(Region, Sync, distance, overlapScaled, annual_avgC, WCDistkm) %>%
   pivot_longer(distance:WCDistkm) %>%
-  mutate(name = factor(name, levels = c("annual_avgC", "distance", "distanceAbs", "overlap", "overlapScaled", "overlapBayes", "DistKM","WCDistkm"),
-                       labels = c("Env Synchrony", "Trait Distance", "Trait Distance Absolute", "Trait Overlap", "Trait Overlap Scaled", "Trait Overlap Bayes",  "Euclidean (km)", "Water Course (km)" )))
+  mutate(name = factor(name, levels = c("annual_avgC", "distance", "overlapScaled","WCDistkm"),
+                       labels = c("Temp Synchrony", "Trait Distance", "Trait Overlap", "Water Course (km)" )))
 
 ## plot all relationships per region
 p1 <- ggplot(relsT, aes(y=Sync, x=value, colour = name)) +
   geom_smooth(method = "lm") +
   facet_grid(rows = vars(Region), cols = vars(name), scales = "free") +
-  theme(legend.position = "bottom",
+  labs(y = "Trait Synchrony") +
+  theme(legend.position = "none",
         legend.title = element_blank(),
         legend.text=element_text(size=15),
         axis.text = element_text(size = 15),
         axis.title = element_text(size = 15),
+        # axis.title.y = element_text("Trait Synchrony"),
         strip.text.x = element_text(size = 15),
-        strip.text.y = element_text(size = 15))
+        strip.text.y = element_text(size = 15)) 
 
 p1
 
 file.name1 <- paste0(out.dir, "08_all_relationships_raw_data.jpg")
-ggsave(p1, filename=file.name1, dpi=300, height=10, width=18)
+ggsave(p1, filename=file.name1, dpi=600, height=6, width=10)
 
 ## take out region
 p2 <- ggplot(relsT, aes(y=Sync, x=value, colour = name)) +
@@ -346,11 +352,11 @@ ggsave(p2, filename=file.name1, dpi=300, height=5, width=6)
 ## plot relationships with overlap
 
 relsT2 <- allsyncxWithin %>%
-  select(Sync:overlap, annual_avgC:WCDistkm) %>%
+  select(Sync:overlapScaled, Region,annual_avgC:WCDistkm) %>%
   pivot_longer(c(Sync, distance, annual_avgC:WCDistkm))
 
 ## plot all relationships per region
-ggplot(relsT2, aes(y=overlap, x=value, colour = name)) +
+ggplot(relsT2, aes(y=overlapScaled, x=value, colour = name)) +
   geom_smooth(method = "lm") +
   facet_grid(rows = vars(Region), cols = vars(name), scales = "free") +
   scale_y_continuous(limits=c(0,1))
@@ -384,10 +390,11 @@ range(allsyncxWithin$Sync) ## 0.06639871 0.99291205
 round(range(allsyncxWithin$distance),digits = 2) ## 0.00 0.16
 round(range(allsyncxWithin$overlap),digits = 2) ## 0.00 0.97
 round(range(allsyncxWithin$annual_avgC),digits = 2) ## 0.82 1.00
+round(range(allsyncxWithin$overlapScaled),digits = 2) ## 0.00 0.99
 names(allsyncxWithin)
 
 ranges <- allsyncxWithin %>%
-  pivot_longer(c(distance, overlap, annual_avgC, Sync, WCDistkm), names_to = "Variable", values_to = "Values") %>%
+  pivot_longer(c(distance, overlap,overlapScaled, annual_avgC, Sync, WCDistkm), names_to = "Variable", values_to = "Values") %>%
   group_by(Variable) %>%
   summarise(MinVals = min(na.omit(Values)), MaxVals = max(na.omit(Values)), 
             MeanVals = mean(na.omit(Values)), SdtError = sder(na.omit(Values)))
@@ -397,7 +404,7 @@ write.csv(ranges, "output_data/Tidy/08_values_overall.csv")
 
 ## per region
 rangesRegion <- allsyncxWithin %>%
-  pivot_longer(c(distance, overlap, annual_avgC, Sync, WCDistkm), names_to = "Variable", values_to = "Values") %>%
+  pivot_longer(c(distance, overlap, overlapScaled, annual_avgC, Sync, WCDistkm), names_to = "Variable", values_to = "Values") %>%
   group_by(Region, Variable) %>%
   summarise(MinVals = min(Values), MaxVals = max(Values), MeanVals = mean(Values), SdtError = sder(Values))
 rangesRegion
@@ -420,13 +427,6 @@ rangesRegionDist
 
 ## save
 write.csv(rangesRegionDist, "output_data/Tidy/08_geo_distances_per_region.csv")
-
-## numbers of sites er region
-
-vals <- allsyncxWithin %>%
-  pivot_longer(c(Hydrobasin, Site_ID1, Pair), names_to = "Variable", values_to = "Values") %>%
-  group_by(Region) %>%
-  tally()
 
 
 # Models: Within Basin spatial decay ----------------------------------------------------
@@ -464,6 +464,7 @@ df0$TStat <- modwc$t.value ## t statistics
 df0$Pvalues <- modwc$Pr...t.. ## p values
 df0 <- as.data.frame(df0)
 df0
+
 ## fitted values add to df
 allsyncxWithinx <- allsyncxWithin %>%
   drop_na(WCDistkmsqrt) ## remove WC NAs
@@ -492,53 +493,6 @@ S2
 file.name1 <- paste0(out.dir, "08_Fitted_Sync_Over_WCDistance_Within_sqrt.jpg")
 ggsave(S2, filename=file.name1, dpi=300, height=5, width=6)
 
-## between basin - euclidean distance
-
-## create memberships
-Wa <- lmerMultiMember::weights_from_vector(allsyncxBetween$Region)
-Wj <- Matrix::fac2sparse(allsyncxBetween$SiteName)  # convert single membership vars to an indicator matrix with fac2sparse()
-Waj <- interaction_weights(Wa, Wj)
-
-mem_mixedb <- lmerMultiMember::lmer(Sync ~ DistKMsqrt
-                                    + (1 | Region ) + ## add predictors here to get random effect per region
-                                      + (1 | RegionXSiteName), 
-                                    memberships = list(Region = Wa, RegionXSiteName = Waj), 
-                                    REML = T,
-                                    data = allsyncxBetween)
-
-
-
-## coefs
-# summary(mem_mixedb, ddf = "Satterthwaite")
-anova(mem_mixedb, ddf = "Satterthwaite")
-r2_nakagawa(mem_mixedb) ## 0.15
-check_singularity(mem_mixedb) ## False
-performance::icc(mem_mixedb, by_group = T) ## 0.12
-
-## fitted values add to df
-allsyncxBetweenx <- allsyncxBetween %>%
-  drop_na(DistKMsqrt) ## remove WC NAs
-
-class(mem_mixedb) <- "lmerModLmerTest"
-
-allsyncxBetweenx$mem_mixedb <- fitted(mem_mixedb)
-
-S3 <- ggplot(allsyncxBetweenx, aes(x = DistKMsqrt, y = mem_mixedb)) +
-  geom_point(aes(y=Sync, col = Region), size = 0.01) +
-  geom_smooth(method = "loess", se = F) +
-  scale_y_continuous(name="Trait Synchrony") +
-  scale_x_continuous(name="Euclidean Distance (sqrt KM)")
-S3
-
-file.name1 <- paste0(out.dir, "08_Fitted_Sync_Over_EUCDistance_Between_sqrt.jpg")
-ggsave(S3, filename=file.name1, dpi=300, height=5, width=6)
-
-## combine plots
-# spdecay <- plot_grid(list(S2, S3)) ## grid figures
-spdecay <- cowplot::plot_grid(S2,S3, align="h")
-
-file.name1 <- paste0(out.dir, "08_spatial_decay_within_between.jpg")
-ggsave(spdecay, filename=file.name1, dpi=300, height=5, width=12)
 
 
 # Biotic Variables: mixed membership model --------------------------------
@@ -591,17 +545,31 @@ write.csv(df0, "Tables/08_distance_coefs.csv")
 
 ### plots 
 class(mem_mixed0) <- "lmerModLmerTest"
+devtools::install_github("strengejacke/strengejacke")
+
+data(iris)
+m2 <- lm(Sepal.Length ~ Sepal.Width + Petal.Length + Species, data = iris)
+iris
+# variable names as labels, but made "human readable"
+# separating dots are removed
+plot_model(m2)
+
 
 estsdw <- sjPlot::plot_model(mem_mixed0, 
+                             type = "est",
+                             axis.lim = c(-0.05, 0.05),
+                             vline.color = "grey30",
                              show.values=TRUE, show.p=TRUE,
-                             title="Drivers of Thermal Synchrony")
+                             axis.labels = c("Interaction", "Temperature Synchrony", "Thermal Distance"),
+                             title = "")
 
-estsdw
+estsdw <- estsdw + scale_y_continuous(limits = c(-0.05, 0.05))
+
 file.name1 <- paste0(out.dir, "08_withinBasin_effect_sizes_all_expsync_n4_sites_distance_zscores_cortemp.jpg")
 ggsave(estsdw, filename=file.name1, dpi=300, height=8, width=10)
 
-# estsTab <- sjPlot::tab_model(mem_mixed0, 
-#                              show.re.var= TRUE, 
+# estsTab <- sjPlot::tab_model(mem_mixed0,
+#                              show.re.var= TRUE,
 #                              pred.labels =c("(Intercept)", "ZDistance", "ZTemp"),
 #                              dv.labels= "Drivers of Thermal Synchrony")
 # 
@@ -613,8 +581,8 @@ theme_set(theme_sjplot())
 ### make individual plots of interactions
 mean(allsyncxWithin$overlap)
 quantile(allsyncxWithin$ZTempCor, probs = c(0.05,0.5,0.95))
-# round(quantile(allsyncxWithin$ZOverlap, probs = c(0.05,0.5,0.95)), digits = 3)
-round(quantile(allsyncxWithin$ZDistance, probs = c(0.05,0.5,0.95)), digits = 3)
+round(quantile(allsyncxWithin$ZOverlap, probs = seq(0.05,1,0.05)), digits = 3)
+round(quantile(allsyncxWithin$ZDistance, probs = seq(0.05,1,0.05)), digits = 3)
 
 ## overlap v temp
 tempDis <- sjPlot::plot_model(mem_mixed0, type="pred", terms= c("ZDistance", "ZTempCor [-2.5088766, 0.4314952, 0.4841359]"),
@@ -623,7 +591,7 @@ tempDis <- sjPlot::plot_model(mem_mixed0, type="pred", terms= c("ZDistance", "ZT
 tempDis
 
 
-DisTemp <- sjPlot::plot_model(mem_mixed0, type="pred", terms= c("ZTempCor", "ZDistance [-0.992, -0.314, 2.023]"),
+DisTemp <- sjPlot::plot_model(mem_mixed0, type="pred", terms= c("ZTempCor", "ZDistance [-1.013,  -0.892,  -0.759,  -0.608,  -0.422,  0.489,   1.036,    2.034,  4.744 ]"),
                               axis.title = c("Environmental synchrony (Z Score)" ,"Thermal Trait Synchrony"), 
                               legend.title = "Trait Distance")
 DisTemp
@@ -631,34 +599,32 @@ DisTemp
 # allsyncxBetweenx$mem_mixed0 <- fitted(mem_mixed0)
 
 ## Overlap: Within Basin
-mem_mixed1 <- lmerMultiMember::lmer(Sync ~  ZOverlap*ZTempCor
+# mem_mixed1 <- lmerMultiMember::lmer(Sync ~  ZOverlap*ZTempCor
+#                                     + (1 | Region ) + ## add predictors here to get random effect per region
+#                                       (1 | RegionXSiteName), 
+#                                     memberships = list(Region = Wa, RegionXSiteName = Waj), 
+#                                     REML = T,
+#                                     data = allsyncxWithin)
+
+mem_mixed1 <- lmerMultiMember::lmer(Sync ~  ZOverlapScaled*ZTempCor
                                     + (1 | Region ) + ## add predictors here to get random effect per region
-                                      (1 | RegionXSiteName), 
-                                    memberships = list(Region = Wa, RegionXSiteName = Waj), 
+                                      (1 | RegionXSiteName),
+                                    memberships = list(Region = Wa, RegionXSiteName = Waj),
                                     REML = T,
                                     data = allsyncxWithin)
 
-mem_mixed1a <- lmerMultiMember::lmer(Sync ~  ZOverlapScaled*ZTempCor
-                                    + (1 | Region ) + ## add predictors here to get random effect per region
-                                      (1 | RegionXSiteName), 
-                                    memberships = list(Region = Wa, RegionXSiteName = Waj), 
-                                    REML = T,
-                                    data = allsyncxWithin)
-
-mem_mixed1b <- lmerMultiMember::lmer(Sync ~  ZOverlapBayes*ZTempCor
-                                     + (1 | Region ) + ## add predictors here to get random effect per region
-                                       (1 | RegionXSiteName), 
-                                     memberships = list(Region = Wa, RegionXSiteName = Waj), 
-                                     REML = T,
-                                     data = allsyncxWithin)
+# mem_mixed1b <- lmerMultiMember::lmer(Sync ~  ZOverlapBayes*ZTempCor
+#                                      + (1 | Region ) + ## add predictors here to get random effect per region
+#                                        (1 | RegionXSiteName), 
+#                                      memberships = list(Region = Wa, RegionXSiteName = Waj), 
+#                                      REML = T,
+#                                      data = allsyncxWithin)
 
 
 summary(mem_mixed1, ddf = "Satterthwaite")
-summary(mem_mixed1a, ddf = "Satterthwaite")
-summary(mem_mixed1b, ddf = "Satterthwaite")
 
 anova(mem_mixed1, ddf = "Satterthwaite")
-r2_nakagawa(mem_mixed1a)[1] ## 0.153
+r2_nakagawa(mem_mixed1)[1] ## 0.153
 r2 <- r2_nakagawa(mem_mixed1)[1]
 r2$R2_conditional
 check_singularity(mem_mixed1) ## False
@@ -691,10 +657,14 @@ class(mem_mixed1) <- "lmerModLmerTest"
 # class(mem_mixed1)
 
 estsow <- sjPlot::plot_model(mem_mixed1, 
+                             type = "est",
+                             axis.lim = c(-0.05, 0.05),
+                             vline.color = "grey",
                              show.values=TRUE, show.p=TRUE,
-                             title="Drivers of Thermal Synchrony")
+                             axis.labels = c("Interaction", "Temperature Synchrony", "Thermal Overlap"),
+                             title = "")
 
-estsow
+estsow  <- estsow + scale_y_continuous(limits = c(-0.05, 0.05))
 
 file.name1 <- paste0(out.dir, "08_withinBasin_effect_sizes_all_expsync_n4_sites_overlap_zscores_corTemp.jpg")
 ggsave(estsow, filename=file.name1, dpi=300, height=8, width=10)
@@ -734,7 +704,7 @@ DivTemp <- sjPlot::plot_model(mem_mixed1b, type="pred", terms= c("ZTempCor", " Z
                               legend.title = "Trait Overlap")
 DivTemp
 ## overlap v temp
-tempDiv <- sjPlot::plot_model(mem_mixed1a, type="pred", terms= c("ZOverlapScaled", "ZTempCor [-2.513, 0.436, 0.49]"),
+tempDiv <- sjPlot::plot_model(mem_mixed1a, type="pred", terms= c("ZOverlapScaled", "ZTempCor [-1.780, 0.048, 1.560]"),
                               axis.title = c( "Trait Overlap (Z Score)","Thermal Trait Synchrony"), 
                               legend.title = "Environmental synchrony")
 tempDiv
@@ -746,150 +716,13 @@ DivTemp <- sjPlot::plot_model(mem_mixed1a, type="pred", terms= c("ZTempCor", " Z
 DivTemp
 
 
-
-# ## create memberships
-# Wa <- lmerMultiMember::weights_from_vector(allsyncxBetween$Region)
-# Wj <- Matrix::fac2sparse(allsyncxBetween$SiteName)  # convert single membership vars to an indicator matrix with fac2sparse()
-# Waj <- interaction_weights(Wa, Wj)
-# 
-# ## Overlap: Between basin
-# mem_mixed2 <- lmerMultiMember::lmer(Sync ~  ZOverlap*ZTempCor
-#                                     + (1 | Region ) + ## add predictors here to get random effect per region
-#                                       (1 | RegionXSiteName), 
-#                                     memberships = list(Region = Wa, RegionXSiteName = Waj), 
-#                                     REML = T,
-#                                     data = allsyncxBetween)
-# 
-# 
-# summary(mem_mixed2, ddf = "Satterthwaite")
-# anova(mem_mixed2, ddf = "Satterthwaite")
-# r2_nakagawa(mem_mixed2) ## 0.148
-# check_singularity(mem_mixed2) ## False
-# performance::icc(mem_mixed2, by_group = T) ## 0.113
-# 
-# # lattice::qqmath(mem_mixed1)
-# # plot(mem_mixed1, type=c("p","smooth"), col.line=1)
-# # check_model(mem_mixed1)
-# 
-# ### plots 
-# class(mem_mixed2) <- "lmerModLmerTest"
-# # sjPlot::plot_model(mem_mixed) 
-# estsob <- sjPlot::plot_model(mem_mixed2, 
-#                              show.values=TRUE, show.p=TRUE,
-#                              title="Drivers of Thermal Synchrony")
-# 
-# estsob
-# file.name1 <- paste0(out.dir, "08_betweenBasin_effect_sizes_all_expsync_n4_sites_overlap_zscores_corTemp.jpg")
-# ggsave(estsob, filename=file.name1, dpi=300, height=8, width=10)
-# 
-# # estsTab <- sjPlot::tab_model(mem_mixed2, 
-# #                              show.re.var= TRUE, 
-# #                              pred.labels =c("(Intercept)", "overlap", "annual avg"),
-# #                              dv.labels= "Drivers of Thermal Synchrony")
-# # 
-# # estsTab
-# 
-# set_theme(base = theme_classic(), #To remove the background color and the grids
-#           theme.font = 'serif',   #To change the font type
-#           axis.title.size = 1.3,  #To change axis title size
-#           axis.textsize.x = 1.2,    #To change x axis text size
-#           # axis.angle.x = 60,      #To change x axis text angle
-#           # axis.hjust.x = 1,
-#           # axis.ticksmar = 50,
-#           axis.textsize.y = 1)  #To change y axis text size
-# 
-# theme_set(theme_sjplot())
-# 
-# ### make individual plots of interactions
-# mean(allsyncxBetween$overlap)
-# quantile(allsyncxBetween$ZTemp, probs = c(0.05,0.5,0.95))
-# round(quantile(allsyncxBetween$ZOverlap, probs = c(0.05,0.5,0.95)), digits = 3)
-# round(quantile(allsyncxBetween$ZDistance, probs = c(0.05,0.5,0.95)), digits = 3)
-# 
-# ## overlap v temp
-# tempDivB <- sjPlot::plot_model(mem_mixed2, type="pred", terms= c("ZOverlap", "ZTempCor [-1.96, 0.16, 1.15]"),
-#                                axis.title = c( "Trait Overlap (Z Score)","Thermal Trait Synchrony"), 
-#                                legend.title = "Environmental synchrony")
-# tempDivB
-# 
-# 
-# DivTempB <- sjPlot::plot_model(mem_mixed2, type="pred", terms= c("ZTempCor", " ZOverlap [-0.616, -0.601, 2.393]"),
-#                                axis.title = c("Environmental synchrony (Z Score)" ,"Thermal Trait Synchrony"), 
-#                                legend.title = "Trait Overlap")
-# DivTempB
-# 
-# 
-# 
-# 
-# ## Distance: Between Basin
-# 
-# mem_mixed3 <- lmerMultiMember::lmer(Sync ~  ZDistance*ZTempCor
-#                                     + (1 | Region ) + ## add predictors here to get random effect per region
-#                                       (1 | RegionXSiteName), 
-#                                     memberships = list(Region = Wa, RegionXSiteName = Waj), 
-#                                     REML = T,
-#                                     data = allsyncxBetween)
-# 
-# 
-# summary(mem_mixed3, ddf = "Satterthwaite")
-# anova(mem_mixed3, ddf = "Satterthwaite")
-# r2_nakagawa(mem_mixed3) ## 0.15
-# check_singularity(mem_mixed3) ## False
-# performance::icc(mem_mixed3, by_group = T) ## 0.12
-# 
-# # lattice::qqmath(mem_mixed1)
-# # plot(mem_mixed1, type=c("p","smooth"), col.line=1)
-# # check_model(mem_mixed1)
-# 
-# ### plots 
-# class(mem_mixed3) <- "lmerModLmerTest"
-# # sjPlot::plot_model(mem_mixed) 
-# estsdb <- sjPlot::plot_model(mem_mixed3, 
-#                              show.values=TRUE, show.p=TRUE,
-#                              title="Drivers of Thermal Synchrony")
-# 
-# estsdb
-# file.name1 <- paste0(out.dir, "08_betweenBasin_effect_sizes_all_expsync_n4_sites_distance_zscores.jpg")
-# ggsave(estsdb, filename=file.name1, dpi=300, height=8, width=10)
-# 
-# # estsTab <- sjPlot::tab_model(mem_mixed3, 
-# #                              show.re.var= TRUE, 
-# #                              pred.labels =c("(Intercept)", "overlap", "annual avg"),
-# #                              dv.labels= "Drivers of Thermal Synchrony")
-# # 
-# # estsTab
-# 
-# set_theme(base = theme_classic(), #To remove the background color and the grids
-#           theme.font = 'serif',   #To change the font type
-#           axis.title.size = 1.3,  #To change axis title size
-#           axis.textsize.x = 1.2,    #To change x axis text size
-#           # axis.angle.x = 60,      #To change x axis text angle
-#           # axis.hjust.x = 1,
-#           # axis.ticksmar = 50,
-#           axis.textsize.y = 1)  #To change y axis text size
-# 
-# theme_set(theme_sjplot())
-# 
-# ### make individual plots of interactions
-# mean(allsyncxWithin$overlap)
-# quantile(allsyncxBetween$ZTemp, probs = c(0.05,0.5,0.95))
-# round(quantile(allsyncxBetween$ZOverlap, probs = c(0.05,0.5,0.95)), digits = 3)
-# round(quantile(allsyncxBetween$ZDistance, probs = c(0.05,0.5,0.95)), digits = 3)
-# 
-# ## overlap v temp
-# tempDisB <- sjPlot::plot_model(mem_mixed3, type="pred", terms= c("ZDistance", "ZTempCor [-1.96, 0.16, 1.15]"),
-#                                axis.title = c( "Trait Distance (Z Score)","Thermal Trait Synchrony"), 
-#                                legend.title = "Environmental synchrony")
-# tempDisB
-# 
-# 
-# DisTempB <- sjPlot::plot_model(mem_mixed3, type="pred", terms= c("ZTempCor", "ZDistance [-1.210, -0.199, 1.957]"),
-#                                axis.title = c("Environmental synchrony (Z Score)" ,"Thermal Trait Synchrony"), 
-#                                legend.title = "Trait Distance")
-# DisTempB
-# 
-
 # Figures -----------------------------------------------------------------
+
+## estimates
+eststplot <- plot_grid(list(estsdw, estsow)) 
+
+file.name1 <- paste0(out.dir, "08_all_estimates.jpg")
+ggsave(eststplot, filename=file.name1, dpi=600, height=5, width=7)
 
 ## Distance
 distplot <- plot_grid(list(estsdw, DisTemp)) ## grid figures
@@ -1003,6 +836,53 @@ library(wesanderson)
 # install.packages("ggsci")
 library("ggsci")
 
+set_theme(base = theme_classic(), #To remove the background color and the grids
+          theme.font = 'serif',   #To change the font type
+          axis.title.size = 1.3,  #To change axis title size
+          axis.textsize.x = 1.2,    #To change x axis text size
+          # axis.angle.x = 60,      #To change x axis text angle
+          # axis.hjust.x = 1,
+          # axis.ticksmar = 50,
+          axis.textsize.y = 1)  #To change y axis text size
+
+theme_set(theme_sjplot())
+
+## fitted values add to df
+allsyncxWithinx <- allsyncxWithin %>%
+  drop_na(WCDistkmsqrt) ## remove WC NAs
+
+## checking distance data
+testD <- allsyncxWithinx %>%
+  # filter(ZDistance <= 0) %>% ## more similar
+  filter(ZDistance >= 0) %>% ## more different
+  select(Region, Sync, distance, annual_avgC, ZDistance) #%>%
+  # pivot_longer(distance:annual_avgC)
+
+ggplot(data = testD, aes(x = distance, y = Sync)) +
+  stat_smooth(method = "lm") +
+  geom_point() +
+  facet_wrap(~Region)
+
+ggplot(data = testD, aes(x = distance)) +
+  geom_histogram()+
+  facet_wrap(~Region, scales = "free")
+
+## checking overlap data
+testO <- allsyncxWithinx %>%
+  filter(ZOverlapScaled >= 0) %>% ## more similar
+  # filter(ZOverlap <= 0) %>% ## more different
+  select(Region, Sync, overlapScaled, annual_avgC, ZDistance) #%>%
+# pivot_longer(distance:annual_avgC)
+
+ggplot(data = testO, aes(x = overlapScaled, y = Sync)) +
+  stat_smooth(method = "lm") +
+  facet_wrap(~Region)
+
+ggplot(data = testD, aes(x = distance)) +
+  geom_histogram()+
+  facet_wrap(~Region, scales = "free")
+
+
 # build formula to get  from allsyncxWithin$ZTempCor
 orginal_values <- allsyncxWithinx$ZTempCor
 original_mean <- mean(allsyncxWithin$ZTempCor) ## original mean
@@ -1012,16 +892,8 @@ original_sd <- sd(allsyncxWithin$ZTempCor) ## original sd
 target_values <- allsyncxWithin$annual_avgC
 target_mean <- mean(allsyncxWithin$annual_avgC) ## target mean
 target_sd <- sd(allsyncxWithin$annual_avgC) ## target sd
-
-# build formula to get allsyncxWithin$annual_avg from allsyncxWithin$ZTempCor
-orginal_values <- allsyncxWithinx$ZTempCor
-original_mean <- mean(allsyncxWithin$ZTempCor) ## original mean
-original_sd <- sd(allsyncxWithin$ZTempCor) ## original sd
-
-target_values <- allsyncxWithin$annual_avgC
-target_mean <- mean(allsyncxWithin$annual_avgC) ## target mean
-target_sd <- sd(allsyncxWithin$annual_avgC) ## target sd
-
+target_sd
+target_mean
 ## find the scale factor 
 
 scFact <- 1/original_sd ## 1.000206
@@ -1031,10 +903,11 @@ scFact
 ## test transformation
 test <- (scFact*(orginal_values-original_mean)) *target_sd + target_mean
 test2 <- (target_sd*(orginal_values-original_mean)/original_sd+target_mean)
+test
 sd(test) ## correct!
-mean(test2) ## correct!
+mean(test) ## correct!
 
-cor(target_values, test) ## 0.633
+# cor(target_values, test) ## 0.633
 ## values don't exactly match, but mean and sd are correct
 
 ## try on figure values
@@ -1044,44 +917,45 @@ test ## sync predctions going over 1, need to remove or change z scores. can onl
 
 ## prioginal values of overlap
 
-round(quantile(allsyncxWithin$overlap, probs = c(0.05,0.5,0.95)), digits = 3)
+round(quantile(allsyncxWithin$overlapScaled, probs = c(0.05,0.5,0.95)), digits = 3)
 #    5%   50%   95% 
 # 0.000 0.459 0.856 
-hist(allsyncxWithin$overlap)
-hist(log(allsyncxWithin$ZOverlap)+1)
+hist(allsyncxWithin$overlapScaled)
 
-test <- 1 + allsyncxWithin$ZOverlap -min(allsyncxWithin$ZOverlap)
+test <- 1 + allsyncxWithin$ZOverlapScaled -min(allsyncxWithin$ZOverlapScaled)
 hist(test)
-min(allsyncxWithin$ZOverlap)
+min(allsyncxWithin$ZOverlapScaled)
 min(test)
 
 round(quantile(allsyncxWithin$distance, probs = c(0.05,0.5,0.95)), digits = 3)
 #    5%   50%   95% 
-# 0.001 0.018 0.077 
+# 0.001 0.018 0.074 
 hist(allsyncxWithin$distance)
 hist(allsyncxWithin$ZDistance)
 
 ## predict the values of sync with the interactions
 quantile(allsyncxWithin$ZTempCor, probs = c(0.05,0.5,0.95))
-round(quantile(allsyncxWithin$ZOverlap, probs = c(0.05,0.5,0.95)), digits = 3)
+round(quantile(allsyncxWithin$ZOverlapScaled, probs = c(0.05,0.5,1)), digits = 3)
 round(quantile(allsyncxWithin$ZDistance, probs = c(0.05,0.5,0.95)), digits = 3)
 
-## overlap
-df <- ggpredict(mem_mixed1, terms= c("ZTempCor [-10:1]", "ZOverlap [-1.569, 0.068, 1.483]"))
-
+## overlap interaction
+df <- ggpredict(mem_mixed1, terms= c("ZTempCor [-10:1]", "ZOverlapScaled [-1.780, 0.048, 2.119]"))
+?ggpredict
 ## transform the env sync values using above formula
 df$x2 <- (scFact*(df$x-original_mean)) *target_sd + target_mean ## back transform values
+df$group
+cols <- c("#999999", "#E69F00","#56B4E9")
 
 ## plot using ggplot 
 DivTemp  <- ggplot(df, aes(x2, predicted)) + 
   geom_line(aes(linetype=group, color=group, linewidth = 0)) +
   geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=group), alpha=0.15) +
-  scale_color_jco( labels = c("5th", "50th", "95th"), name = "Overlap Percentile") +
+  scale_color_manual(values = cols, labels = c("Low", "Median", "High"), name = "Community Similarity") +
   #scale_color_manual(values= wes_palette("Zissou1", n = 3), labels = c("5th", "50th", "95th")) +
-  scale_fill_jco( labels = c("5th", "50th", "95th"), name = "Overlap Percentile") +
-  scale_linetype_manual(values = c("solid", "dashed", "dotted"), labels = c("5th", "50th", "95th"), name = "Overlap Percentile") +
-  scale_x_continuous(name = "Environmental Synchrony", limits = c(0.65,1)) +
-  scale_y_continuous(name = "Thermal Trait Synchrony") + theme(axis.text=element_text(size=20,face="bold"),
+  scale_fill_manual(values = cols,labels = c("Low", "Median", "High"), name = "Community Similarity") +
+  scale_linetype_manual(values = c("dotted", "dashed", "solid"), labels = c("Low", "Median", "High"), name = "Community Similarity") +
+  scale_x_continuous(name = "Temperature Synchrony", limits = c(0.82,1)) +
+  scale_y_continuous(name = "Thermal Synchrony") + theme(axis.text=element_text(size=20,face="bold"),
                                                                axis.title=element_text(size = 20,face="bold"), 
                                                                legend.text=element_text(size=20, face="bold"), 
                                                                legend.title=element_text(size = 20,face="bold")) +
@@ -1090,27 +964,84 @@ DivTemp  <- ggplot(df, aes(x2, predicted)) +
 DivTemp 
 
 ## save out
-file.name1 <- paste0(out.dir, "08_biotic_interactions_overlap_corTemp_Jan2024.jpg")
+file.name1 <- paste0(out.dir, "08_biotic_interactions_overlap_all_species_in_10_year_corTemp_Jan2024.jpg")
 ggsave(DivTemp, filename=file.name1, dpi=300, height=12, width=18)
-  
+
+## overlap sungle effects
+
+# build formula 
+orginal_valuesO <- allsyncxWithinx$ZOverlapScaled
+original_meanO <- mean(allsyncxWithin$ZOverlapScaled) ## original mean
+original_sdO <- sd(allsyncxWithin$ZOverlapScaled) ## original sd
+
+target_valuesO <- allsyncxWithin$overlapScaled
+target_meanO <- mean(allsyncxWithin$overlapScaled) ## target mean
+target_sdO <- sd(allsyncxWithin$overlapScaled) ## target sd
+
+
+## scale factor
+scFactO <- 1/original_sdO ## 1.000206
+scFactO
+
+dfT <- as.data.frame(ggpredict(mem_mixed1, terms= c("ZTempCor [-10:1]")))
+dfO <- as.data.frame(ggpredict(mem_mixed1, terms= c("ZOverlapScaled")))
+
+## transform the env sync values using above formula
+dfT$x2 <- (scFact*(dfT$x-original_mean)) *target_sd + target_mean ## back transform values
+
+## transform the overlap values using above formula
+dfO$x2 <- (scFactO*(dfO$x-original_meanO)) *target_sdO + target_meanO ## back transform values
+
+## combine data
+dfT$Type <- "Temperature Synchrony"
+dfO$Type <- "Thermal Overlap"
+
+df1 <- bind_rows(dfT, dfO)
+df1
+palette.colors()
+## plot using ggplot 
+DivTempO  <- ggplot(df1, aes(x2, predicted)) + 
+  geom_line(aes( color=Type, linewidth = 0)) +
+  geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=Type), alpha=0.15) +
+  scale_color_manual(values = c("#009E73", "#CC79A7")) +
+  # #scale_color_manual(values= wes_palette("Zissou1", n = 3), labels = c("5th", "50th", "95th")) +
+  scale_fill_manual(values = c("#009E73", "#CC79A7")) +
+  facet_wrap(~Type, scales = "free") +
+  # scale_linetype_manual(values = c("solid", "dashed", "dotted"), labels = c("Low similarity", "Median Similarity", "High Similarity"), name = "") +
+  scale_x_continuous(name = "") +
+  scale_y_continuous(name = "Thermal Synchrony") + 
+  theme(axis.text=element_text(size=20,face="bold"),
+        axis.title=element_text(size = 20,face="bold"),
+        legend.text=element_text(size=20, face="bold"),
+        legend.title=element_text(size = 20,face="bold"),
+        strip.text = element_text(size = 20,face="bold")) +
+  guides(linewidth = "none") +
+  theme(legend.position = "bottom", legend.title = element_blank())
+
+DivTempO
+
+## save out
+file.name1 <- paste0(out.dir, "08_overlap_all_species_in_10_year_corTemp_single_effects.jpg")
+ggsave(DivTempO, filename=file.name1, dpi=300, height=12, width=18)
+
 ## distance
-df <- ggpredict(mem_mixed0, terms= c("ZTempCor [-10:1]", "ZDistance [-0.994, -0.315, 2.035]"))
+df <- ggpredict(mem_mixed0, terms= c("ZTempCor [-10:1]", "ZDistance [-1.013,  -0.310, 2.034]"))
 ## transform the env sync values using above formula
 df$x2 <- (scFact*(df$x-original_mean)) *target_sd + target_mean ## back transform values
+cols
 
+df$group
 ## plot using ggplot 
 DistTemp  <- ggplot(df, aes(x2, predicted)) + 
   geom_line(aes(linetype=group, color=group, linewidth = 0)) +
   geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=group), alpha=0.15) +
-  # scale_color_manual(values=c("#999999", "#E69F00", "#56B4E9"), labels = c("5th", "50th", "95th"), name = "Overlap Percentile") +
-  # #scale_color_manual(values= wes_palette("Zissou1", n = 3), labels = c("5th", "50th", "95th")) +
-  # scale_fill_manual(values=c("#999999", "#E69F00", "#56B4E9"), labels = c("5th", "50th", "95th"), name = "Overlap Percentile") +
-  scale_color_jco( labels = c("5th", "50th", "95th"), name = "Distance Percentile") +
+  # scale_fill_discrete(breaks=c(2.034, -0.31, -1.013)) +
+  scale_color_manual(breaks=c(2.034, -0.31, -1.013), values = cols, labels = c("Low", "Median", "High"), name = "Community Similarity") +
   #scale_color_manual(values= wes_palette("Zissou1", n = 3), labels = c("5th", "50th", "95th")) +
-  scale_fill_jco( labels = c("5th", "50th", "95th"), name = "Distance Percentile") +
-  scale_linetype_manual(values = c("solid", "dashed", "dotted"), labels = c("5th", "50th", "95th"), name = "Distance Percentile") +
-  scale_x_continuous(name = "Environmental Synchrony", limits = c(0.65,1)) +
-  scale_y_continuous(name = "Thermal Trait Synchrony") + theme(axis.text=element_text(size=20,face="bold"),
+  scale_fill_manual(breaks=c(2.034, -0.31, -1.013), values = cols, labels = c("Low", "Median", "High"), name = "Community Similarity") +
+  scale_linetype_manual(breaks=c(2.034, -0.31, -1.013), values = c("dotted", "dashed", "solid"), labels = c("Low", "Median", "High"), name = "Community Similarity") +
+  scale_x_continuous(name = "Temperature Synchrony", limits = c(0.82,1)) +
+  scale_y_continuous(name = "Thermal Synchrony") + theme(axis.text=element_text(size=20,face="bold"),
                                                              axis.title=element_text(size = 20,face="bold"), 
                                                              legend.text=element_text(size=20, face="bold"), 
                                                              legend.title=element_text(size = 20,face="bold")) +
@@ -1123,6 +1054,62 @@ DistTemp
 file.name1 <- paste0(out.dir, "08_biotic_interactions_dist_corTemp_Jan2024.jpg")
 ggsave(DistTemp, filename=file.name1, dpi=300, height=12, width=18)
 
+## distance sungle effects
+
+# build formula 
+orginal_valuesD <- allsyncxWithinx$ZDistance
+original_meanD <- mean(allsyncxWithin$ZDistance) ## original mean
+original_sdD <- sd(allsyncxWithin$ZDistance) ## original sd
+
+target_valuesD <- allsyncxWithin$distance
+target_meanD <- mean(allsyncxWithin$distance) ## target mean
+target_sdD <- sd(allsyncxWithin$distance) ## target sd
+
+
+## scale factor
+scFactD <- 1/original_sdD ## 1.000206
+scFactD
+
+dfT <- as.data.frame(ggpredict(mem_mixed0, terms= c("ZTempCor [-10:1]")))
+dfD <- as.data.frame(ggpredict(mem_mixed0, terms= c("ZDistance")))
+
+## transform the env sync values using above formula
+dfT$x2 <- (scFact*(dfT$x-original_mean)) *target_sd + target_mean ## back transform values
+
+## transform the overlap values using above formula
+dfD$x2 <- (scFactD*(dfD$x-original_meanD)) *target_sdD + target_meanD ## back transform values
+
+## combine data
+dfT$Type <- "Temperature Synchrony"
+dfD$Type <- "Thermal Distance"
+
+df2 <- bind_rows(dfT, dfD, dfO)
+df2
+
+## plot using ggplot 
+DisTempAll  <- ggplot(df2, aes(x2, predicted)) + 
+  geom_line(aes( color=Type, linewidth = 0)) +
+  geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=Type), alpha=0.15) +
+  scale_color_manual(values = c("#009E73", "#CC79A7", "#F0E442")) +
+  # #scale_color_manual(values= wes_palette("Zissou1", n = 3), labels = c("5th", "50th", "95th")) +
+  scale_fill_manual(values = c("#009E73", "#CC79A7", "#F0E442")) +
+  facet_wrap(~Type, scales = "free_x") +
+  # scale_linetype_manual(values = c("solid", "dashed", "dotted"), labels = c("Low similarity", "Median Similarity", "High Similarity"), name = "") +
+  scale_x_continuous(name = "") +
+  scale_y_continuous(name = "Thermal Synchrony") + 
+  theme(axis.text=element_text(size=20,face="bold"),
+        axis.title=element_text(size = 20,face="bold"),
+        legend.text=element_text(size=20, face="bold"),
+        legend.title=element_text(size = 20,face="bold"),
+        strip.text = element_text(size = 20,face="bold")) +
+  guides(linewidth = "none") +
+  theme(legend.position = "none", legend.title = element_blank())
+
+DisTempAll
+
+## save out
+file.name1 <- paste0(out.dir, "08_distance_overlap_all_species_in_10_year_corTemp_single_effects.jpg")
+ggsave(DisTempAll, filename=file.name1, dpi=300, height=12, width=18)
 
 ## join together
 # WithinPlot <- cowplot::plot_grid(DistTemp, DivTemp, labels="auto", align = "hv") ## grid figures

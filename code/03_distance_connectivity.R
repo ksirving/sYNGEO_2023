@@ -15,6 +15,8 @@ out.dir <- "/Users/katieirving/OneDrive - SCCWRP/Documents - Katie’s MacBook P
 originaldata <- read.csv("input_data/Bio/fishdata_selection_basins_same_time_window_10262020.csv")
 head(originaldata)
 
+unique(originaldata$Waterbody)
+
 ## take only sites and basins
 sites <- originaldata %>%
   dplyr::select(SiteID, HydroBasin) %>%
@@ -25,6 +27,7 @@ sites <- originaldata %>%
 sync <- read.csv("sync/02_between_all_sites_single_traits_CWM_CWV_CV.csv")
 head(sync)
 
+round(range(sync$distance),digits = 2)
 ## join first site basin
 site1 <- left_join(sync, sites, by = c("Site_ID1" = "SiteID"))
 head(site1)
@@ -140,6 +143,7 @@ load(file = "sync/03_all_pair_distances.RData")
 
 sync <- read.csv("sync/02_between_all_sites_single_traits_CWM_CWV_CV.csv")
 head(sync)
+View(sync)
 
 load(file = "sync/03_all_pair_distances.RData") ## syncsites
 
@@ -196,7 +200,7 @@ syncDF <- all_sync %>%
   mutate(Similarity = 1-(Euclid_Dist_Meters/MaxDist))
 
 head(syncDF)
-
+round(range(syncDF$distance),digits = 2)
 
 save(syncDF, file = "sync/03_sync_temp_distances.RData")
 

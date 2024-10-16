@@ -24,9 +24,10 @@ getwd()
 originaldata <- read.csv("input_data/Bio/fishdata_selection_basins_same_time_window_10262020.csv")
 head(originaldata)
 
-# test <- originaldata %>% filter(SiteID == "S6654")
-# test
+## upload abundance
 
+load(file =  "sync/01_abundance_temp_preference.RData")
+head(abun_traits)
 ## upload <=3 species sites to remove
 
 load(file="output_data/01a_sites_3_species.RData")
@@ -43,6 +44,14 @@ all_groups <- trait_matrix %>%
                                   Country== "AUS" ~ "Oceania", Country == "USA" ~ "USA")) %>%
   filter(!SiteID %in% singleSp3l)
 head(all_groups)
+
+## same to abundacne data
+
+all_abund <- abun_traits %>%
+  mutate(BiogeoRegion = case_when(Country %in% c("FIN", "SWE", "GBR", "ESP", "FRA") ~ "Europe",
+                                  Country== "AUS" ~ "Oceania", Country == "USA" ~ "USA")) %>%
+  filter(!SiteID %in% singleSp3l)
+head(all_abund)
 
 ## temp preference per region
 
@@ -67,7 +76,7 @@ source("https://raw.githubusercontent.com/alaindanet/fishcom/master/R/synchrony.
 ## define biogeogrpahic region
 regionsID<-unique(all_groups$BiogeoRegion) # 3 regions
 synchronyx = NULL
-region = 1
+region = 2
 ax=1
 
 
@@ -76,20 +85,20 @@ ax=1
     
     print(regionsID[region])
     
+    ## get region
     basindata<-all_groups[all_groups$BiogeoRegion==regionsID[region],]
-    # head(basindata)
+    head(basindata)
     basindata <- basindata[order(basindata$SiteID),]
     
-    ### loop over axis
-    Ntraits<-unique(basindata$Trait)
- 
-    
-    for (ax in 1: length(Ntraits)) {
+    ## get region for abundance
+    abunddata<-all_abund[all_abund$BiogeoRegion==regionsID[region],]
+    # head(basindata)
+    abunddata <- abunddata[order(abunddata$SiteID),]
+  
       
-      
-      trait_data<-basindata[basindata$Trait==unique(basindata$Trait)[ax],]
-      # sum(is.na(trait_data))
-      # head(trait_data)
+      trait_data<-basindata
+      abund_data <- abunddata
+   
       years <- unique( trait_data$Year)
       # years
       
@@ -102,26 +111,34 @@ ax=1
       trait_CWV  <- trait_data %>% 
         dplyr::select(-c(X, site_year, Country, HydroBasin, CWM,CV,  Latitude, Longitude) ) %>%
         spread(SiteID, CWV) #%>% ## some NAs appear here, don't have all trait scores for all site years
-      # head(trait_CWV)
-      # # make df wide - CV
-      # trait_CV  <- trait_data %>% 
-      #   dplyr::select(-c(X, site_year, Country, HydroBasin, CWM,CWV,  Latitude, Longitude) ) %>%
-      #   spread(SiteID, CV) #%>% ## some NAs appear here, don't have all trait scores for all site years
-      # # head(trait_CV)
+      head(trait_CWV)
+      
+      ## make abundance wide
+      abunddata_wide <- abunddata %>%
+        dplyr::select(-c(site_year, Country, HydroBasin, RelAbundanceSiteYear, Region) ) %>%
+        group_by(Species, Tp_pref, SiteID) %>%
+        summarise(AbundSite = sum(Abundance))
+      
       # # remove non value columns
       trait_CWM <- (trait_CWM)[,-c(1:3)]
       trait_CWV <- (trait_CWV)[,-c(1:3)]
       # trait_CV <- (trait_CV)[,-c(1:3)]
    
-      ### synchrony 
+      ## get pairwise sites
       cc <- expand.grid(colnames(trait_CWM), colnames(trait_CWM), KEEP.OUT.ATTRS = FALSE)
-      cc
+
+      #remove the sites paired with themselves
+      cc <- cc %>%
+        rowwise() %>%
+        filter(length(unique(c_across(everything()))) > 1) %>%
+        ungroup() %>% as.data.frame()
+      
+      ### synchrony 
       synchrony <- sapply(seq_len(nrow(cc)), function(k) {
        
         print("synchrony")
         print(k)
-        
-        
+    
         i <- cc[k,1]
         j <- cc[k,2]
         
@@ -133,6 +150,7 @@ ax=1
             c("site1", "site2")
           )
         )
+        
         # sync_mat
         compute_synchrony(cov(sync_mat))
       })
@@ -140,44 +158,49 @@ ax=1
       # synchrony
       # head(synchrony)
       
-      ## diversity 2: overlapping index on CWM
-      # diversity2 <- sapply(seq_len(nrow(cc)), function(k) {
-      #   
-      #   print("diversity2")
-      #   print(k)
-      #   
-      #   i <- cc[k,1]
-      #   j <- cc[k,2]
-      #   
-      #   ## format data as list
-      #   div_mat2 <- list(site1 = trait_CWM[, i], site2 = trait_CWM[,j])
-      #   
-      #   # sync_mat
-      #   overlapping::overlap(div_mat2)$OV #, type = "2"
-      #   # plot(bayestestR::overlap(div_mat2$site1, div_mat2$site2))
-      # })
-      # 
-      # diversity2
-      # diversity2 - v2
+      # diversity 2: overlapping index on CWM
+      diversity2 <- sapply(seq_len(nrow(cc)), function(k) {
+
+        print("diversity2")
+        print(k)
+
+        i <- cc[k,1]
+        j <- cc[k,2]
+
+        ## format data as list
+        div_mat2 <- list(site1 = trait_CWM[, i], site2 = trait_CWM[,j])
+        div_mat2
       
-      ## overlap using type =2
-      # diversity3 <- sapply(seq_len(nrow(cc)), function(k) {
-      # 
-      #   print("diversity3")
-      #   print(k)
-      #   
-      #   i <- cc[k,1]
-      #   j <- cc[k,2]
-      # 
-      #   ## format data as list
-      #   div_mat2 <- list(site1 = scale(trait_CWM[, i]), site2 = scale(trait_CWM[,j]))
-      # 
-      #   # bayestestR::overlap(div_mat2$site1, div_mat2$site2) ## overalp index
-      #   overlapping::overlap(div_mat2)$OV #, type = "2"
-      #   # bayestestR::overlap(div_mat2$site1,div_mat2$site2, method_density = "KernSmooth")[[1]]
-      #   # plot(bayestestR::overlap(div_mat2$site1, div_mat2$site2))
-      # })
+        # sync_mat
+        overlapping::overlap(div_mat2)$OV #, type = "2"
       
+        # plot(bayestestR::overlap(div_mat2$site1, div_mat2$site2))
+      })
+  
+      # ## overlap using abundance 
+      diversity3 <- sapply(seq_len(nrow(cc)), function(k) {
+
+        print("diversity3")
+        print(k)
+
+        i <- cc[k,1]
+        j <- cc[k,2]
+
+        df <- abunddata_wide %>%
+          filter(SiteID %in% c(i,j)) %>%
+          ungroup() %>%
+          select(SiteID, Tp_pref, AbundSite)
+
+        # Create a list for each SiteID where Tp_pref is repeated according to AbundSite
+        site_lists <- lapply(split(df, df$SiteID), function(x) {
+          rep(x$Tp_pref, x$AbundSite)
+        })
+
+        overlapping::overlap(site_lists)$OV 
+      })
+      # diversity3
+      # 
+      # plot(diversity2, diversity3)
       # ggplot(test, aes(x = value,fill = name)) +
       #   geom_density( alpha = 0.7) #+
       #   labs(title = "Kernel Density Plot of Salary",
@@ -209,7 +232,7 @@ ax=1
       # cc <- expand.grid(colnames(trait_CWM), colnames(trait_CWM), KEEP.OUT.ATTRS = FALSE)
 
       distance <- sapply(seq_len(nrow(cc)), function(k) {
-        
+        # k=357
         print("distance")
         print(k)
         
@@ -225,11 +248,14 @@ ax=1
           )
         )
         # dist_mat
-        abs((mean(dist_mat[,1])-mean(dist_mat[,2]))/mean(dist_mat))
+        
+        MeanDist <- ifelse(mean(dist_mat[,1]) >= mean(dist_mat[,2]), mean(dist_mat[,1]), mean(dist_mat[,2]))
+        # MeanDist
+        abs((mean(dist_mat[,1])-mean(dist_mat[,2]))/MeanDist)
       
       })
       
-  
+      # mean(distance)
       ## distance without dividing by mean
       distanceAbs <- sapply(seq_len(nrow(cc)), function(k) {
         
@@ -255,11 +281,11 @@ ax=1
       # round(cor(distance, distanceAbs, use = "pairwise"), digits = 2)
 
       ## combine all
-      synchrony <- cbind(cc, synchrony, distance, distanceAbs, diversityBayes)
+      synchrony <- cbind(cc, synchrony, distance, distanceAbs, diversity2, diversity3, diversityBayes) ## diversity2, diversity3,
       # synchrony
       ## add traits and region
       synchrony <- synchrony %>%
-        mutate(Trait = Ntraits[ax], Region = regionsID[region])
+        mutate(Trait = "Tp_pref", Region = regionsID[region])
    
       ## add tio main DF
       synchronyx <- rbind(synchronyx, synchrony)
@@ -268,9 +294,8 @@ ax=1
     }
     
     
-  }
   
-  
+head(synchronyx)
 synchrony_axis <- synchronyx %>%
   rename(Site_ID1 = Var1, Site_ID2 = Var2) %>%
   mutate(Pair = paste0(Site_ID1, ".", Site_ID2))
@@ -282,16 +307,17 @@ length(unique(synchrony_axis$Trait))
 length(unique(synchrony_axis$Region))
 
 ## add to other overlap metrics
-synchrony_axisX <- read.csv("sync/02_between_all_sites_single_traits_CWM_CWV_CV.csv")
-
-synchrony_axisX <- synchrony_axisX %>%
-  select(diversity2, diversity3)
-
-## join together
-synchrony_axis <- cbind(synchrony_axis, synchrony_axisX)
-
-
-head(synchrony_axis)
+# synchrony_axisX <- read.csv("sync/02_between_all_sites_single_traits_CWM_CWV_CV.csv")
+# # 
+# round(range(synchrony_axisX$distance),digits = 2)
+# synchrony_axisX <- synchrony_axisX %>%
+#   select(diversity2, diversity3)
+# 
+# # ## join together
+# synchrony_axis <- cbind(synchrony_axis, synchrony_axisX)
+# 
+# 
+# head(synchrony_axis)
 
 
 ###save results

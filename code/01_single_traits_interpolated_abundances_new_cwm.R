@@ -290,7 +290,7 @@ names(fish_ab2)
 
 ## format abundance for new function cmw
 fish_abun <- fish_ab2 %>%
-  select(Species:Year, RelAbundanceSiteYear)
+  select(Species:Year,Abundance, Country, Region, HydroBasin, RelAbundanceSiteYear)
 
 head(fish_abun)
 
@@ -350,6 +350,8 @@ head(trt_sub)
 abun_traits <- full_join(fish_abun, trt_sub, by="Species")
 
 head(abun_traits)
+
+save(abun_traits, file =  "sync/01_abundance_temp_preference.RData")
 
 # [1] "S1397.S10015" "S1835.S10015" "S1852.S10015" "S2976.S10015" "S3151.S10015" "S3165.S10015"
 # [7] "S3191.S10015" "S3269.S10015" "S3450.S10015" "S4223.S10015"

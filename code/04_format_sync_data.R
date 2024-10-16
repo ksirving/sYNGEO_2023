@@ -23,6 +23,7 @@ funcsync <- syncDF %>%
 
 head(funcsync)
 
+# round(range(allsync$distance),digits = 2)
 ## checking missing pairs script 5a
 
 # singSpeciesorig <- funcsync %>%
@@ -61,6 +62,8 @@ allsync <- full_join(funcsync, tempsync, by = c("Pair","Site_ID1", "Site_ID2", "
   mutate(DistKM = Euclid_Dist_Meters/1000)
 
 save(allsync, file = "sync/04_temp_pref_env_dist_ALL.RData")
+
+round(range(na.omit(allsyncx$distance)),digits = 2)
 
 # Format sites ------------------------------------------------------------
 
@@ -124,7 +127,7 @@ watersites <- watersites %>%
 head(watersites)
 head(syncsites)
 
-length(unique(syncsites$Pair)) # 8459
+length(unique(syncsites$Pair)) # 6076
 length(unique(watersites$Pair)) # 17221
 sum(watersites$Pair %in% syncsites$Pair) ## ~200 site pairs missing - could be related to filtering of species/traits/sites
 
@@ -305,4 +308,5 @@ allsyncx <- full_join(allsyncx, syncDF, by = c("Pair", "DistKM"))
 
 save(allsyncx, file="sync/04_temp_pref_env_dist_no_dupl_pairs_WC.RData")
 
+round(range(allsyncx$distance),digits = 2)
 
