@@ -487,7 +487,7 @@ set_theme(base = theme_classic(), #To remove the background color and the grids
 
 S2 <- ggplot(allsyncxWithinx, aes(x = WCDistkmsqrt, y = mem_mixedwc)) +
   geom_point(aes(y=Sync, col = Region), size = 0.01) +
-  geom_smooth(method = "lm") +
+  geom_smooth(method = "lm",color = "grey20", size=0.5) +
   scale_y_continuous(name="Thermal Synchrony") +
   scale_x_continuous(name="Water Course Distance (sqrt KM)") +
   labs(subtitle = "R² = 0.15, ICC = 0.12") +
@@ -496,7 +496,6 @@ S2 <- ggplot(allsyncxWithinx, aes(x = WCDistkmsqrt, y = mem_mixedwc)) +
   guides(colour = guide_legend(override.aes = list(size=4))) 
   
 S2
-
 file.name1 <- paste0(out.dir, "08_Fitted_Sync_Over_WCDistance_Within_sqrt.jpg")
 ggsave(S2, filename=file.name1, dpi=300, height=5, width=8)
 
@@ -635,7 +634,7 @@ plot <- plot +
   
 plot
 # Re-plot with updated text labels
-customized_distance<- plot +
+customized_distance <- plot +
   # labs(x = "", y = "Beta-coefficient") +
   theme(axis.text=element_text(size=15),
         axis.title=element_text(size=15),
@@ -737,7 +736,7 @@ plotO <- sjPlot::plot_model(mem_mixed1,
                              axis.labels = c("Interaction", "Thermal Overlap", "Temperature Synchrony"),
                              title = "",
                             axis.title = c("Beta-coefficient", "")) 
-
+plotO
 plotO <- plotO + scale_y_continuous(limits = c(-0.025, 0.025))
 
 # Re-plot with updated text labels
@@ -752,6 +751,7 @@ customized_overlap<- plotO +
   ) 
 
 customized_overlap
+customized_distance
 
 file.name1 <- paste0(out.dir, "08_withinBasin_effect_sizes_all_expsync_n4_sites_overlap_zscores_corTemp.jpg")
 ggsave(customized_overlap, filename=file.name1, dpi=300, height=8, width=10)
