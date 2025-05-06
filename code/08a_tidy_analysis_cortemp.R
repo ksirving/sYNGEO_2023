@@ -5,7 +5,6 @@ library(cowplot) #for manuscript ready figures
 library(sjPlot) #for plotting lmer and glmer mods
 library(sjmisc)
 library(sjlabelled)
-library(lmerTest) ## from Luke et al 2016 - evaluating significance in linear mixed-effects models in R
 library("easystats") ## multicolinearality
 library(lmerMultiMember)
 library(effects)
@@ -14,6 +13,8 @@ library("scales")
 library(performance)
 library(lme4)
 library(ggpubr)
+library(lmerTest) ## from Luke et al 2016 - evaluating significance in linear mixed-effects models in R
+
 
 
 # library("devtools")
@@ -39,7 +40,7 @@ allsyncx <- allsyncx %>%
   drop_na(annual_avg)
 
 ## directory for figures
-out.dir <- "/Users/katieirving/OneDrive - SCCWRP/Documents - Katie’s MacBook Pro/git/sYNGEO_2023/Figures/Tidy/"
+out.dir <- "Figures/Tidy/"
 
 cor(allsyncx$annual_avg, allsyncx$annual_avgC) ## 0.998
 
@@ -85,6 +86,50 @@ hist(allsyncx$DistKM)
 hist(allsyncx$WCDistkm)
 hist(allsyncx$WCDistkmsqrt)
 
+
+# Visualize raw data ------------------------------------------------------
+
+head(allsyncx)
+
+## fortmat and lmake long
+allsyncL <- allsyncx %>%
+  select(Sync, Pair, annual_avg) %>%
+  pivot_longer(c(Sync,annual_avg), names_to = "Var", values_to = "Val") %>%
+  mutate(Var = factor(Var, levels = c("Sync", "annual_avg"),
+                         labels = c("Thermal Community", "Environmental Temperature"))) %>%
+  # filter(Connectivity == "Within Basin") %>%
+  distinct() %>%
+  mutate(Variable = "Variable")
+  
+labs <- list('annual_avg'="Environmental Temperature",
+             'Sync'="Thermal Community")
+?factor
+head(allsyncL)
+set_theme(base = theme_classic(), #To remove the background color and the grids
+          theme.font = 'sans')   #To change the font type
+
+
+p1 <- ggplot(allsyncL, aes(x=Variable, y=Val, colour = Var)) +
+  geom_violin(width=1) +
+  facet_wrap(~Var, strip.position = "bottom") +
+  scale_x_discrete(name = "") +
+  scale_y_continuous(name = "Synchrony") + 
+  theme(axis.text.y=element_text(size=30),
+        axis.text.x=element_blank(),
+        axis.title=element_text(size = 30), 
+        # legend.text=element_text(size=30), 
+        # legend.title=element_text(size = 30),
+        legend.position = "none",
+        strip.background = element_blank(),
+        strip.text = element_text(size = 30)) +
+  theme(text = element_text( size = 30))  ## family = "Helvetica"
+
+  p1
+  
+  ## save out
+  file.name1 <- paste0(out.dir, "08_violin_env_bio_sync.jpg")
+  ggsave(p1, filename=file.name1, dpi=600, height=12, width=18)
+  
 # CORRELATIONS ------------------------------------------------------------
 
 ## all
@@ -449,11 +494,12 @@ mem_mixedwc <- lmerMultiMember::lmer(Sync ~ WCDistkmsqrt
 
 
 ## coefs
+class(mem_mixedwc)
 summary(mem_mixedwc, ddf = "Satterthwaite")
 anova(mem_mixedwc, ddf = "Satterthwaite")
-r2_nakagawa(mem_mixedwc) ## 0.15
+r2_nakagawa(mem_mixedwc) ## 0.150
 check_singularity(mem_mixedwc) ## False
-performance::icc(mem_mixedwc, by_group = T) ## 0.12
+performance::icc(mem_mixedwc, by_group = T) ## 0.123
 
 ## get and save coefs
 modwc <- data.frame(coef(summary(mem_mixedwc, ddf = "Satterthwaite")))
@@ -473,7 +519,8 @@ allsyncxWithinx <- allsyncxWithin %>%
 
 class(mem_mixedwc) <- "lmerModLmerTest"
 
-allsyncxWithinx$mem_mixedwc <- fitted(mem_mixedwc)
+allsyncxWithinx$mem_mixedwc <-  predict(mem_mixedwc, re.form = NULL) #fitted(mem_mixedwc)
+
 
 set_theme(base = theme_classic(), #To remove the background color and the grids
           theme.font = 'sans',   #To change the font type
@@ -488,9 +535,9 @@ set_theme(base = theme_classic(), #To remove the background color and the grids
 S2 <- ggplot(allsyncxWithinx, aes(x = WCDistkmsqrt, y = mem_mixedwc)) +
   geom_point(aes(y=Sync, col = Region), size = 0.01) +
   geom_smooth(method = "lm",color = "grey20", size=0.5) +
-  scale_y_continuous(name="Thermal Synchrony") +
+  scale_y_continuous(name="Thermal Community Synchrony") +
   scale_x_continuous(name="Water Course Distance (sqrt KM)") +
-  labs(subtitle = "R² = 0.15, ICC = 0.12") +
+  labs(subtitle = "R² = 0.15, ICC = 0.123") +
   theme(text = element_text( size = 15)) + ## family = "Helvetica"
   theme(legend.key=element_blank()) +
   guides(colour = guide_legend(override.aes = list(size=4))) 
@@ -499,44 +546,50 @@ S2
 file.name1 <- paste0(out.dir, "08_Fitted_Sync_Over_WCDistance_Within_sqrt.jpg")
 ggsave(S2, filename=file.name1, dpi=300, height=5, width=8)
 
-allsyncxWithinx
-mem_mixedwc
+S3 <- ggplot(allsyncxWithinx, aes(x = WCDistkm, y = mem_mixedwc)) +
+  geom_point(aes(y=Sync, col = Region), size = 0.01) +
+  geom_smooth(method = "lm",color = "grey20", size=0.5) +
+  scale_y_continuous(name="Thermal Synchrony") +
+  scale_x_continuous(name="Water Course Distance (KM)") +
+  labs(subtitle = "R² = 0.15, ICC = 0.123") +
+  theme(text = element_text( size = 15)) + ## family = "Helvetica"
+  theme(legend.key=element_blank()) +
+  guides(colour = guide_legend(override.aes = list(size=4))) 
+
+S3
+
 summary(mem_mixedwc)
 range(allsyncxWithinx$WCDistkm)
+
 ## get marginal effect of decrease in y with KMs
 
-# Define the fixed effect coefficient from your model
+# Define model coefficient (beta for sqrt(km))
 beta1 <- -0.002105
+-0.002105 *10 ## -0.02105 10 km sqrt
 
-# Choose distances (in km) where you want to evaluate marginal effects
-km_values <- c(1, 5, 10, 20, 50, 100, 200, 500,1000,2000)
+10*10
 
-# Calculate marginal effect of a 1 km increase at each distance
-marginal_effects <- sapply(km_values, function(x) {
-  delta_y <- beta1 * (sqrt(x + 1) - sqrt(x))
+
+# Create a sequence of km values (0 to 100 km in 10 km steps)
+km_values <- seq(0, 90, by = 10)
+
+# Calculate change in y for each 10 km interval
+change_in_y <- sapply(km_values, function(x) {
+  sqrt_diff <- sqrt(x + 10) - sqrt(x)
+  delta_y <- beta1 * sqrt_diff
   return(delta_y)
 })
 
-# Combine into a data frame for easy viewing
-results <- data.frame(
-  km_start = km_values,
-  km_end = km_values + 1,
-  marginal_effect = marginal_effects
+# Combine into a data frame
+result <- data.frame(
+  from_km = km_values,
+  to_km = km_values + 10,
+  change_in_y = round(change_in_y, 6)
 )
 
-# Show the results
-print(results)
-
-## all effect sizes
-marginal_effects <- beta1 * (sqrt(allsyncxWithinx$WCDistkm + 1) - sqrt(allsyncxWithinx$WCDistkm))
-marginal_effects
-
-# Calculate the average marginal effect across all km values
-average_effect <- mean(marginal_effects, na.rm = TRUE)
-
-
-# Print result
-cat("Average marginal effect per km:", round(average_effect, 6), "units of y\n")
+# View the result
+print(result)
+mean(result$change_in_y) # -0.002105
 
 # Biotic Variables: mixed membership model --------------------------------
 
@@ -553,15 +606,15 @@ mem_mixed0 <- lmerMultiMember::lmer(Sync ~  ZTempCor*ZDistance
                                     REML = T,
                                     data = allsyncxWithin)
 
-summary(mem_mixed0, ddf = "Satterthwaite")
-anova(mem_mixed0, ddf = "Satterthwaite")
+summary(mem_mixed0)
+anova(mem_mixed0)
 r2_nakagawa(mem_mixed0) ## 0.145
 r2 <- r2_nakagawa(mem_mixed0)[1]
 check_singularity(mem_mixed0) ## False
 performance::icc(mem_mixed0, by_group = T) ## 0.122
 
 ## get and save coefs
-mod0 <- data.frame(coef(summary(mem_mixed0, ddf = "Satterthwaite")))
+mod0 <- data.frame(coef(summary(mem_mixed0)))
 
 df0 <- NULL
 df0$Effects <- rownames(mod0)
@@ -575,7 +628,6 @@ df0$R2 <- r2$R2_conditional ## 0.153
 df0$ICCRxSN <- performance::icc(mem_mixed0, by_group = T)[1,2] ## 0.124
 df0$ICCR <- performance::icc(mem_mixed0, by_group = T)[2,2]
 
-df0
 
 write.csv(df0, "Tables/08_distance_coefs.csv")
 
@@ -625,7 +677,7 @@ plot <- sjPlot::plot_model(mem_mixed0,
                            vline.color = "grey",
                            show.values=F, show.p=F,
                            # value.size = 0,
-                           axis.labels = c("Interaction", "Thermal Distance", "Temperature Synchrony"),
+                           axis.labels = c("Interaction", "Thermal Niche Distance", "Env. Temp. Synchrony"),
                            title = "",
                            axis.title = c("Beta-coefficient", "")) 
 
@@ -704,7 +756,7 @@ estsow <- sjPlot::plot_model(mem_mixed1,
                              vline.color = "grey",
                              show.values=T, show.p=T,
                              # value.size = 0,
-                             axis.labels = c("Interaction", "Thermal Overlap", "Temperature Synchrony"),
+                             axis.labels = c("Interaction", "Thermal Niche Overlap", "Env. Temp. Synchrony"),
                              title = "",
                              axis.title = c("Beta-coefficient", "")) 
 
@@ -733,7 +785,7 @@ plotO <- sjPlot::plot_model(mem_mixed1,
                              vline.color = "grey",
                              show.values=F, show.p=F,
                              # value.size = 0,
-                             axis.labels = c("Interaction", "Thermal Overlap", "Temperature Synchrony"),
+                             axis.labels = c("Interaction", "Thermal Niche Overlap", "Env. Temp. Synchrony"),
                              title = "",
                             axis.title = c("Beta-coefficient", "")) 
 plotO
@@ -762,7 +814,7 @@ combined_plot <- ggarrange(customized_distance,
                            customized_overlap,
                            nrow = 2,
                            ncol = 1,
-                           labels = "AUTO")
+                           labels = c("(a)", "(b)"))
 combined_plot
 
 ## save
@@ -1028,6 +1080,21 @@ WithinPlot
 
 # Plot interactions together -----------------------------------------------
 
+# build formula to get  from allsyncxWithin$ZTempCor
+orginal_values <- allsyncxWithinx$ZTempCor
+original_mean <- mean(allsyncxWithin$ZTempCor) ## original mean
+original_sd <- sd(allsyncxWithin$ZTempCor) ## original sd
+
+## target
+target_values <- allsyncxWithin$annual_avgC
+target_mean <- mean(allsyncxWithin$annual_avgC) ## target mean
+target_sd <- sd(allsyncxWithin$annual_avgC) ## target sd
+
+## find the scale factor 
+
+scFact <- 1/original_sd ## 1.000206
+scFact
+
 ## overlap interaction
 dfO <- ggpredict(mem_mixed1, terms= c("ZTempCor [-10:1]", "ZOverlapScaled [-1.780, 0.048, 2.119]"))
 ## transform the env sync values using above formula
@@ -1084,15 +1151,19 @@ unique(dfAll$group)
 InterPlot  <- ggplot(dfAll, aes(x2, predicted)) + 
   geom_line(aes(linetype=Labels, color=Labels, linewidth = 0)) +
   geom_ribbon(aes(ymin=conf.low, ymax=conf.high, fill=Labels), alpha=0.15) +
-  labs(subtitle = "Distance: R² = 0.15, ICC = 0.12,  Overlap: R² = 0.15, ICC = 0.13") +
+  # labs(subtitle = "Distance: R² = 0.145, ICC = 0.122,  Overlap: R² = 0.149, ICC = 0.125") +
   # scale_fill_discrete(breaks=c(2.034, -0.31, -1.013)) +
-  facet_wrap(~FacetNames) +
+  facet_wrap(~ThermalNiche, labeller = labeller(
+    ThermalNiche = c(
+      "Distance" = "(a) R² = 0.145, ICC = 0.122",
+      "Overlap" = "(b) R² = 0.149, ICC = 0.125"
+    ))) +
   scale_color_manual(values = cols, name = "Thermal Dissimilarity") +
   #scale_color_manual(values= wes_palette("Zissou1", n = 3), labels = c("5th", "50th", "95th")) +
   scale_fill_manual(values = cols, name = "Thermal Dissimilarity") +
   scale_linetype_manual(values = c("solid", "dashed", "dotted"), name = "Thermal Dissimilarity") +
-  scale_x_continuous(name = "Temperature Synchrony", limits = c(0.82,1)) +
-  scale_y_continuous(name = "Thermal Synchrony", limits = c(0.2,0.7), breaks = seq(0.2,0.7, by = 0.2)) + 
+  scale_x_continuous(name = "Environmental Temperature Synchrony", limits = c(0.82,1)) +
+  scale_y_continuous(name = "Thermal Community Synchrony", limits = c(0.2,0.7), breaks = seq(0.2,0.7, by = 0.2)) + 
   theme(axis.text=element_text(size=30),
     axis.title=element_text(size = 30), 
     legend.text=element_text(size=30), 
