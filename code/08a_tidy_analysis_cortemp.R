@@ -15,8 +15,6 @@ library(lme4)
 library(ggpubr)
 library(lmerTest) ## from Luke et al 2016 - evaluating significance in linear mixed-effects models in R
 
-
-
 # library("devtools")
 # install_github("jvparidon/lmerMultiMember")
 
@@ -103,7 +101,7 @@ allsyncL <- allsyncx %>%
   
 labs <- list('annual_avg'="Environmental Temperature",
              'Sync'="Thermal Community")
-?factor
+
 head(allsyncL)
 set_theme(base = theme_classic(), #To remove the background color and the grids
           theme.font = 'sans')   #To change the font type
@@ -501,6 +499,8 @@ r2_nakagawa(mem_mixedwc) ## 0.150
 check_singularity(mem_mixedwc) ## False
 performance::icc(mem_mixedwc, by_group = T) ## 0.123
 
+save(mem_mixedwc, file = "output_data/models/WC_mod.RData")
+
 ## get and save coefs
 modwc <- data.frame(coef(summary(mem_mixedwc, ddf = "Satterthwaite")))
 
@@ -613,6 +613,7 @@ r2 <- r2_nakagawa(mem_mixed0)[1]
 check_singularity(mem_mixed0) ## False
 performance::icc(mem_mixed0, by_group = T) ## 0.122
 
+save(mem_mixed0, file = "output_data/models/Trait_Distance_mod.RData")
 ## get and save coefs
 mod0 <- data.frame(coef(summary(mem_mixed0)))
 
@@ -723,6 +724,7 @@ r2$R2_conditional
 check_singularity(mem_mixed1) ## False
 performance::icc(mem_mixed1, by_group = T)[1,2] ## 0.13
 
+save(mem_mixed1, file = "output_data/models/Trait_Overlap_mod.RData")
 mem_mixed1
 
 ## get and save coefs
@@ -1080,6 +1082,9 @@ WithinPlot
 
 # Plot interactions together -----------------------------------------------
 
+round(quantile(allsyncxWithin$ZOverlapScaled, probs = c(0.05,0.5,1)), digits = 3)
+round(quantile(allsyncxWithin$ZDistance, probs = c(0.05,0.5,0.95)), digits = 3)
+
 # build formula to get  from allsyncxWithin$ZTempCor
 orginal_values <- allsyncxWithinx$ZTempCor
 original_mean <- mean(allsyncxWithin$ZTempCor) ## original mean
@@ -1168,6 +1173,7 @@ InterPlot  <- ggplot(dfAll, aes(x2, predicted)) +
     axis.title=element_text(size = 30), 
     legend.text=element_text(size=30), 
     legend.title=element_text(size = 30),
+    strip.background = element_blank(),
     strip.text = element_text(size = 30)) +
   theme(text = element_text( size = 30)) + ## family = "Helvetica"
   guides(linewidth = "none") +
