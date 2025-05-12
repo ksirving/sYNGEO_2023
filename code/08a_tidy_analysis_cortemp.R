@@ -500,10 +500,10 @@ check_singularity(mem_mixedwc) ## False
 performance::icc(mem_mixedwc, by_group = T) ## 0.123
 
 save(mem_mixedwc, file = "output_data/models/WC_mod.RData")
-
+load(file = "output_data/models/WC_mod.RData")
 ## get and save coefs
 modwc <- data.frame(coef(summary(mem_mixedwc, ddf = "Satterthwaite")))
-
+modwc
 df0 <- NULL
 df0$Effects <- rownames(modwc)
 df0$Estimates <- modwc$Estimate ## estimates
@@ -614,6 +614,9 @@ check_singularity(mem_mixed0) ## False
 performance::icc(mem_mixed0, by_group = T) ## 0.122
 
 save(mem_mixed0, file = "output_data/models/Trait_Distance_mod.RData")
+
+load( "output_data/models/Trait_Distance_mod.RData")
+summary(mem_mixed0)
 ## get and save coefs
 mod0 <- data.frame(coef(summary(mem_mixed0)))
 
@@ -643,7 +646,7 @@ estsdw <- sjPlot::plot_model(mem_mixed0,
                              show.values=T, show.p=TRUE,
                              axis.labels = c("Interaction", "Thermal Distance", "Temperature Synchrony"),
                              title = "")
-
+?plot_model
 estsdw <- estsdw + scale_y_continuous(limits = c(-0.025, 0.025))
 estsdw
 
