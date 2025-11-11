@@ -1,0 +1,16 @@
+"","Region","Name","Min","Max"
+"1","Europe","nSites",5,30
+"2","Europe","nSpecies",8,46
+"3","Europe","nPair",10,435
+"4","Europe","nBasins",1,1
+"5","Europe","mWCDist",2.57315248014466,476.180029791333
+"6","Oceania","nSites",8,39
+"7","Oceania","nSpecies",29,35
+"8","Oceania","nPair",28,741
+"9","Oceania","nBasins",1,1
+"10","Oceania","mWCDist",12.1447667494472,152.072477133294
+"11","USA","nSites",12,52
+"12","USA","nSpecies",31,121
+"13","USA","nPair",66,1326
+"14","USA","nBasins",1,1
+"15","USA","mWCDist",94.2079998068003,1047.39599055818

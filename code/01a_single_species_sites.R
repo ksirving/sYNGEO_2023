@@ -45,6 +45,13 @@ singleSp3 <- fishTally %>%
 
 singleSp3l <- unique(singleSp3$SiteID)
 length(singleSp3l) ## 151
+singleSp3$SiteID
+
+test <- fish_ab_rel_int %>%
+  filter(SiteID %in% singleSp3$SiteID)
+
+test2 <- fish_ab_rel_int %>%
+  filter(!SiteID %in% singleSp3$SiteID)
 
 ## save out
 

@@ -31,10 +31,14 @@ format for statistical analysis
 
 ## scripts 05-07
 
-old/explotatorty code not used in final analysis
+old/exploratory code not used in final analysis
 
 ## Script 08a_tidy_analysis_cortemp.R
 
 Main bulk of stats
 multi memebership mixed models on all 3 models 
 all figures for results 
+
+## script 10 and others
+
+admin or exploratory code

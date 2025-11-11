@@ -55,7 +55,7 @@ head(all_abund)
 
 ## temp preference per region
 
-all_groups %>% group_by(BiogeoRegion) %>% summarise(MeanTemp = mean(CWM))
+all_groups %>% group_by(BiogeoRegion) %>% summarise(MinTemp = min(CWM), MaxTemp = max(CWM))
 names(all_groups)
 
 ## remove <3 species sites

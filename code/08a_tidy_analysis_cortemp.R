@@ -274,10 +274,17 @@ write.csv(cUS, "output_data/Tidy/08_cor_dist_abs_vals_Oceania.csv")
 allsyncx$Connectivity <- as.factor(allsyncx$Connectivity)
 allsyncx$Connectivity <- recode_factor(allsyncx$Connectivity,  "1" = "Within Basin", "0" = "Between Basin") 
 
+allsyncx
 # ## within basin - make longer to get site names for membership model
 allsyncxWithin <- allsyncx %>%
   filter(Connectivity == "Within Basin") %>%
   pivot_longer(Site_ID1:Site_ID2, names_to = "SiteNumber", values_to = "SiteName") 
+
+allsyncxWithin <- allsyncxWithin %>%
+  select(SiteName, Sync, distance, overlap, annual_avg, Region, Pair, Connectivity, WCDistkmsqrt, DistKMsqrt, ZTempCor, ZDistance,
+         ZDistanceAbs, ZOverlap, ZOverlapScaled)
+
+write.csv(allsyncxWithin, "sync/08a_data_for_models.csv")
 
 allsyncxWithin
 # ## between basin -  make longer to get site names for membership model
@@ -290,7 +297,7 @@ round(range(allsyncxBetween$distance),digits = 2) ## 0.00 0.31
 # N basins etc ------------------------------------------------------------
 
 ## upload fish abundance and site data
-originaldata <- read.csv("input_data/Bio/fishdata_selection_basins_same_time_window_10262020.csv") %>%
+originaldata <- read.csv("input_data/Bio/fishdata_selection_basins_same_time_window_10262020.csv") #%>%
   dplyr::select(SiteID, BioRealm, HydroBasin, Species) 
 head(originaldata)
 
@@ -318,6 +325,24 @@ test1
 write.csv(test1, "output_data/Tidy/08_n_sites_species_per_region.csv")
 unique(test$BioRealm)
 
+## count per basin
+
+test2 <- test %>% group_by(Region, HydroBasin) %>% summarise(nSites = length(unique(SiteID)),
+                                                 nSpecies = length(unique(Species)),
+                                                 nPair = length(unique(Pair)),
+                                                 nBasins = length(unique(HydroBasin)),
+                                                 mWCDist = mean(na.omit(WCDistkm)))
+test2
+
+## ranges
+rngs <- test2 %>% 
+  pivot_longer(c(nSites:mWCDist), names_to = "Name", values_to = "Value") %>%
+  group_by(Name, Region) %>%
+  mutate(Min = min(Value), Max = max(Value)) %>%
+  select(-HydroBasin, -Value) %>%
+  distinct() 
+
+write.csv(rngs, "output_data/Tidy/08_ranges_sites_species_per_region.csv")
 
 ## look at overlap percentiles, check wc/eu distances
 
@@ -517,7 +542,7 @@ df0 <- as.data.frame(df0)
 allsyncxWithinx <- allsyncxWithin %>%
   drop_na(WCDistkmsqrt) ## remove WC NAs
 
-class(mem_mixedwc) <- "lmerModLmerTest"
+# class(mem_mixedwc) <- "lmerModLmerTest"
 
 allsyncxWithinx$mem_mixedwc <-  predict(mem_mixedwc, re.form = NULL) #fitted(mem_mixedwc)
 
@@ -591,6 +616,119 @@ result <- data.frame(
 print(result)
 mean(result$change_in_y) # -0.002105
 
+
+# Euclidean distance ------------------------------------------------------
+
+mem_mixedeu <- lmerMultiMember::lmer(Sync ~ DistKMsqrt
+                                     + (1 | Region ) + ## add predictors here to get random effect per region
+                                       + (1 | RegionXSiteName), 
+                                     memberships = list(Region = Wa, RegionXSiteName = Waj), 
+                                     REML = T,
+                                     data = allsyncxWithin)
+
+
+
+## coefs
+class(mem_mixedeu)
+summary(mem_mixedeu, ddf = "Satterthwaite")
+anova(mem_mixedeu, ddf = "Satterthwaite")
+r2_nakagawa(mem_mixedeu) ## 0.151
+check_singularity(mem_mixedeu) ## False
+performance::icc(mem_mixedeu, by_group = T) ## 0.126
+
+save(mem_mixedeu, file = "output_data/models/eu_mod.RData")
+load(file = "output_data/models/eu_mod.RData")
+## get and save coefs
+modeu <- data.frame(coef(summary(mem_mixedeu, ddf = "Satterthwaite")))
+modeu
+df0 <- NULL
+df0$Effects <- rownames(modeu)
+df0$Estimates <- modeu$Estimate ## estimates
+df0$DegreesOfFreedom <- modeu$df ## df
+df0$TStat <- modeu$t.value ## t statistics
+df0$Pvalues <- modeu$Pr...t.. ## p values
+df0 <- as.data.frame(df0)
+
+
+## fitted values add to df
+allsyncxWithinx <- allsyncxWithin #%>%
+  drop_na(WCDistkmsqrt) ## remove eu NAs
+
+class(mem_mixedeu) <- "lmerModLmerTest"
+
+allsyncxWithinx$mem_mixedeu <-  predict(mem_mixedeu, re.form = NULL) #fitted(mem_mixedeu)
+
+
+set_theme(base = theme_classic(), #To remove the background color and the grids
+          theme.font = 'sans',   #To change the font type
+          axis.title.size = 1.3,  #To change axis title size
+          axis.textsize.x = 1.2,    #To change x axis text size
+          # axis.angle.x = 60,      #To change x axis text angle
+          # axis.hjust.x = 1,
+          # axis.ticksmar = 50,
+          axis.textsize.y = 1)  #To change y axis text size
+
+allsyncxWithinx
+S2 <- ggplot(allsyncxWithinx, aes(x = DistKMsqrt, y = mem_mixedeu)) +
+  geom_point(aes(y=Sync, col = Region), size = 0.01) +
+  geom_smooth(method = "lm",color = "grey20", size=0.5) +
+  scale_y_continuous(name="Thermal Community Synchrony") +
+  scale_x_continuous(name="Euclidean Distance (sqrt KM)") +
+  labs(subtitle = "R² = 0.15, ICC = 0.126") +
+  theme(text = element_text( size = 15)) + ## family = "Helvetica"
+  theme(legend.key=element_blank()) +
+  guides(colour = guide_legend(override.aes = list(size=4))) 
+
+
+S2
+file.name1 <- paste0(out.dir, "08_Fitted_Sync_Over_EUDistance_Within_sqrt.jpg")
+ggsave(S2, filename=file.name1, dpi=300, height=5, width=8)
+
+# S3 <- ggplot(allsyncxWithinx, aes(x = Distkm, y = mem_mixedeu)) +
+#   geom_point(aes(y=Sync, col = Region), size = 0.01) +
+#   geom_smooth(method = "lm",color = "grey20", size=0.5) +
+#   scale_y_continuous(name="Thermal Synchrony") +
+#   scale_x_continuous(name="Water Course Distance (KM)") +
+#   labs(subtitle = "R² = 0.15, ICC = 0.126") +
+#   theme(text = element_text( size = 15)) + ## family = "Helvetica"
+#   theme(legend.key=element_blank()) +
+#   guides(colour = guide_legend(override.aes = list(size=4))) 
+# 
+# S3
+
+summary(mem_mixedeu)
+range(allsyncxWithinx$WCDistkm)
+
+## get marginal effect of decrease in y with KMs
+
+# Define model coefficient (beta for sqrt(km))
+beta1 <- -0.002105
+-0.002105 *10 ## -0.02105 10 km sqrt
+
+10*10
+
+
+# Create a sequence of km values (0 to 100 km in 10 km steps)
+km_values <- seq(0, 90, by = 10)
+
+# Calculate change in y for each 10 km interval
+change_in_y <- sapply(km_values, function(x) {
+  sqrt_diff <- sqrt(x + 10) - sqrt(x)
+  delta_y <- beta1 * sqrt_diff
+  return(delta_y)
+})
+
+# Combine into a data frame
+result <- data.frame(
+  from_km = km_values,
+  to_km = km_values + 10,
+  change_in_y = round(change_in_y, 6)
+)
+
+# View the result
+print(result)
+mean(result$change_in_y) # -0.002105
+
 # Biotic Variables: mixed membership model --------------------------------
 
 ## distance: Within Basin
@@ -606,12 +744,26 @@ mem_mixed0 <- lmerMultiMember::lmer(Sync ~  ZTempCor*ZDistance
                                     REML = T,
                                     data = allsyncxWithin)
 
+# mem_mixed0a <- lmerMultiMember::lmer(Sync ~  ZTempCor*ZDistanceAbs
+#                                     + (1 | Region ) + ## add predictors here to get random effect per region
+#                                       (1 | RegionXSiteName), 
+#                                     memberships = list(Region = Wa, RegionXSiteName = Waj), 
+#                                     REML = T,
+#                                     data = allsyncxWithin)
+
 summary(mem_mixed0)
 anova(mem_mixed0)
 r2_nakagawa(mem_mixed0) ## 0.145
 r2 <- r2_nakagawa(mem_mixed0)[1]
 check_singularity(mem_mixed0) ## False
 performance::icc(mem_mixed0, by_group = T) ## 0.122
+
+# summary(mem_mixed0a)
+# anova(mem_mixed0a)
+# r2_nakagawa(mem_mixed0a) ## 0.145
+# r2 <- r2_nakagawa(mem_mixed0a)[1]
+# check_singularity(mem_mixed0a) ## False
+# performance::icc(mem_mixed0a, by_group = T) ## 0.122
 
 save(mem_mixed0, file = "output_data/models/Trait_Distance_mod.RData")
 
